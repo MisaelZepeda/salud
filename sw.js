@@ -1,6 +1,6 @@
 // Guarda la app en el celular para que funcione sin internet.
 // Cambia VERSION cada vez que publiques cambios para que se actualice.
-const VERSION = "salud-v6";
+const VERSION = "salud-v7";
 const ARCHIVOS = [
   "./",
   "./index.html",

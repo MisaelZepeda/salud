@@ -45,7 +45,7 @@
           </span>
         </label>
       </div>
-      <p class="legal">Solo para mayores de edad. Toma con responsabilidad, toma agua y nadie maneja. · v6</p>
+      <p class="legal">Solo para mayores de edad. Toma con responsabilidad, toma agua y nadie maneja. · v7</p>
     </section>
 
     <section id="jugadores" class="pantalla" hidden>
@@ -71,6 +71,19 @@
       </header>
       <p class="ayuda">Elige uno o varios niveles. Si eliges varios, las cartas se mezclan.</p>
       <div id="lista-modos" class="lista-modos"></div>
+      <label class="interruptor" id="op-progresivo">
+        <input type="checkbox" id="chk-progresivo" role="switch">
+        <span>
+          <b>📈 Modo progresivo</b>
+          <small id="ayuda-progresivo"></small>
+        </span>
+      </label>
+      <h3 class="subtitulo">Temáticos</h3>
+      <p class="ayuda">Se mezclan con los niveles de arriba, o se juegan solos.</p>
+      <div id="lista-temas" class="lista-modos"></div>
+      <label class="campo" id="campo-festejado" hidden>🎉 ¿A quién festejamos?
+        <select id="festejado"></select>
+      </label>
       <p class="ayuda" id="ayuda-mias"></p>
       <div class="acciones">
         <button class="btn" id="btn-empezar">¡Empezar!</button>
@@ -89,6 +102,11 @@
       <div class="pie-juego">
         <p class="pista" id="pista">Toca la carta para sacar la siguiente</p>
         <button class="pill pill-chica" id="btn-saltar" type="button" hidden>Saltar ⏭</button>
+      </div>
+      <div class="herramientas">
+        <button class="herr" id="btn-botella" type="button"><span aria-hidden="true">🍾</span>Botella</button>
+        <button class="herr" id="btn-comodin" type="button"><span aria-hidden="true">🃏</span>Comodín</button>
+        <button class="herr" id="btn-ruleta" type="button"><span aria-hidden="true">🎡</span>Castigo</button>
       </div>
     </section>
 
@@ -124,7 +142,11 @@
       </form>
       <h3 class="subtitulo">Tus cartas <span id="num-mias" class="pill-num">0</span></h3>
       <ul id="lista-mias" class="lista-mias"></ul>
-      <p class="nota">Tus cartas se guardan solo en este celular y se mezclan con las demás al jugar.</p>
+      <div class="fila-dos">
+        <button class="btn btn-sec" id="btn-compartir" type="button">📤 Compartir</button>
+        <button class="btn btn-sec" id="btn-importar" type="button">📥 Importar</button>
+      </div>
+      <p class="nota">Tus cartas se guardan solo en este celular y se mezclan con las demás al jugar. Para pasarlas a otro celular, compártelas.</p>
     </section>
 
   </main>
@@ -142,6 +164,11 @@
       <li><b class="etq etq-probable">👉 Más probable</b> A la cuenta de 3 todos señalan. El más señalado toma 2.</li>
       <li><b class="etq etq-regla">📜 Regla</b> Dura varias cartas. Quien la rompa, toma.</li>
       <li><b class="etq etq-juego">🎲 Minijuego</b> Caricachupas, mímica, duelos… Algunos traen temporizador.</li>
+    </ul>
+    <ul class="tipos">
+      <li><b>🍾 Botella:</b> gira una botella que elige a alguien al azar.</li>
+      <li><b>🃏 Comodín:</b> cada quien tiene 2 por partida para salvarse de una carta sin tomar.</li>
+      <li><b>🎡 Castigo:</b> si alguien no quiere cumplir, la ruleta decide qué le toca.</li>
     </ul>
     <p class="nota">Un <b>trago</b> es un sorbo. Un <b>shot</b> es un caballito de lo que estén tomando. Si alguien no toma alcohol, que juegue con refresco o agua.</p>
     <form method="dialog"><button class="btn">Entendido</button></form>
@@ -168,6 +195,63 @@
     <form method="dialog" class="fila-botones">
       <button class="btn btn-sec" value="no">Seguir jugando</button>
       <button class="btn" value="si">Terminar</button>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-botella" class="dialogo">
+    <h2>🍾 La botella</h2>
+    <div class="ruedo" id="ruedo">
+      <div class="botella" id="botella">
+        <svg viewBox="0 0 40 140" aria-hidden="true">
+          <rect x="15" y="2" width="10" height="9" rx="2" fill="#d4a72c"/>
+          <path d="M16 10h8v26c0 8 12 12 12 26v68a8 8 0 0 1-8 8H12a8 8 0 0 1-8-8V62c0-14 12-18 12-26z" fill="#2f7a3e" stroke="#1a120c" stroke-width="2"/>
+          <rect x="7" y="80" width="26" height="28" rx="3" fill="#fbf3e6"/>
+          <rect x="11" y="90" width="18" height="3" rx="1.5" fill="#f6a623"/>
+          <path d="M10 66v50" stroke="rgba(255,255,255,.35)" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+    <p class="resultado" id="res-botella" aria-live="polite"></p>
+    <form method="dialog" class="fila-botones">
+      <button type="button" class="btn btn-sec" id="girar-botella">Otra vez</button>
+      <button class="btn" value="ok">Listo</button>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-comodin" class="dialogo">
+    <h2>🃏 ¿Quién usa su comodín?</h2>
+    <p>Se salva de esta carta sin tomar. Cada quien tiene 2 por partida.</p>
+    <div class="lista-comodines" id="lista-comodines"></div>
+    <form method="dialog"><button class="btn btn-sec">Mejor no</button></form>
+  </dialog>
+
+  <dialog id="dlg-ruleta" class="dialogo">
+    <h2>🎡 Ruleta de castigos</h2>
+    <div class="ruleta-caja">
+      <div class="ruleta-flecha" aria-hidden="true"></div>
+      <div class="ruleta" id="ruleta"></div>
+    </div>
+    <p class="resultado" id="res-ruleta" aria-live="polite"></p>
+    <form method="dialog" class="fila-botones">
+      <button type="button" class="btn btn-sec" id="girar-ruleta">Otra vez</button>
+      <button class="btn" value="ok">Listo</button>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-importar" class="dialogo">
+    <h2>📥 Importar cartas</h2>
+    <div id="imp-entrada">
+      <p>Pega aquí el link que te mandaron.</p>
+      <textarea id="imp-texto" class="area" rows="3" aria-label="Link con cartas"></textarea>
+      <button type="button" class="btn btn-sec" id="imp-pegar">📋 Pegar</button>
+    </div>
+    <div id="imp-vista" hidden>
+      <p id="imp-resumen"></p>
+      <ul class="lista-mias" id="imp-lista"></ul>
+    </div>
+    <form method="dialog" class="fila-botones">
+      <button class="btn btn-sec" value="no">Cancelar</button>
+      <button type="button" class="btn" id="imp-ok">Revisar</button>
     </form>
   </dialog>
 
