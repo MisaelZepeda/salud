@@ -36,10 +36,3 @@ python -m http.server 8417
 ```
 
 Luego abre http://localhost:8417
-
-## Publicar en GitHub Pages
-
-1. Crea un repositorio en GitHub y sube estos archivos.
-2. En el repositorio: **Settings → Pages → Branch: main / (root) → Save**.
-3. En un par de minutos queda en `https://TU-USUARIO.github.io/NOMBRE-DEL-REPO/`.
-4. Ábrelo en el celular y toca **Instalar** (Android) o **Compartir → Agregar a inicio** (iPhone).
