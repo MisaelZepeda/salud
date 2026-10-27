@@ -83,10 +83,32 @@
   // ---------- Sonidos ----------
   // Todos se generan en el momento con Web Audio: no hay archivos que descargar.
 
+  const ES_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  document.documentElement.classList.toggle("ios", ES_IOS);
+
   const sonido = (() => {
     let ctx = null;
     let salida = null;
     let activo = guardado.leer("salud.sonido", true);
+    let ignorarSilencio = guardado.leer("salud.ignorarSilencio", true);
+
+    // En iPhone el modo silencio calla el audio web. Con la sesión "playback" (iOS 16.4+)
+    // suena igual, pero pausa la música de otras apps en ese celular; por eso es opcional.
+    function aplicarSesion() {
+      if (!ES_IOS) return;
+      try {
+        if (navigator.audioSession) navigator.audioSession.type = activo && ignorarSilencio ? "playback" : "auto";
+      } catch {}
+    }
+    aplicarSesion();
+
+    // Cierra el audio para que el siguiente toque lo vuelva a crear con la sesión nueva.
+    function reiniciar() {
+      try { ctx?.close(); } catch {}
+      ctx = null;
+      salida = null;
+      document.documentElement.dataset.audio = "apagado";
+    }
 
     // Deja ver el estado del audio en <html data-audio="..."> para diagnosticar.
     const marcar = () => { document.documentElement.dataset.audio = ctx ? ctx.state : "apagado"; };
@@ -205,16 +227,32 @@
     return {
       get activo() { return activo; },
       get listo() { return !!ctx && ctx.state === "running"; },
+      get ignorarSilencio() { return ignorarSilencio; },
       play(nombre) {
         try { efectos[nombre]?.(); } catch {}
       },
       alternar() {
         activo = !activo;
         guardado.escribir("salud.sonido", activo);
+        aplicarSesion();
+        reiniciar();
+      },
+      cambiarSilencio(valor) {
+        ignorarSilencio = valor;
+        guardado.escribir("salud.ignorarSilencio", valor);
+        aplicarSesion();
+        reiniciar();
       },
       desbloquear,
     };
   })();
+
+  const chkSilencio = $("#chk-silencio");
+  chkSilencio.checked = sonido.ignorarSilencio;
+  chkSilencio.addEventListener("change", () => {
+    sonido.cambiarSilencio(chkSilencio.checked);
+    sonido.play("toque");
+  });
 
   function renderSonido() {
     document.querySelectorAll("[data-sonido]").forEach((b) => {
@@ -856,9 +894,8 @@
   });
   window.addEventListener("appinstalled", () => { $("#btn-instalar").hidden = true; });
 
-  const esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const instalada = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
-  if (esIOS && !instalada) $("#nota-ios").hidden = false;
+  if (ES_IOS && !instalada) $("#nota-ios").hidden = false;
 
   // Cuando hay una versión nueva, recarga, salvo a media partida o escribiendo una carta.
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
