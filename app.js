@@ -677,20 +677,20 @@
 
   const CASTIGOS = {
     base: [
-      { corto: "2 tragos", largo: "🍹 Toma 2 tragos." },
-      { corto: "Te salvas", largo: "😇 ¡Te salvaste! Esta vez no tomas.", salva: true },
-      { corto: "Canta", largo: "🎤 Canta el coro de la canción que elija el grupo." },
+      { corto: "3 tragos", largo: "🍹 Échate 3 tragos y sin chillar." },
+      { corto: "Te salvas", largo: "😇 ¡Te salvaste! Qué suerte tienes, no tomas.", salva: true },
+      { corto: "Canta", largo: "🎤 Canta a todo pulmón el coro que escoja el grupo." },
       { corto: "Imita", largo: "🎭 Imita a alguien del grupo hasta que adivinen quién es." },
-      { corto: "Doble", largo: "✌️ Tomas el doble de lo que decía la carta." },
-      { corto: "El grupo", largo: "👥 El grupo decide tu castigo." },
+      { corto: "Doble", largo: "✌️ Te toca el doble de lo que decía la carta. Ni modo." },
+      { corto: "El grupo", largo: "👥 El grupo decide tu castigo. Que se pongan creativos." },
     ],
     fuerte: [
-      { corto: "1 shot", largo: "🥃 ¡Un shot!" },
-      { corto: "Fondo", largo: "🍺 ¡Fondo a tu vaso!" },
+      { corto: "Shot", largo: "🥃 ¡Shot! Y con grito de «¡ajúa!»." },
+      { corto: "Fondo", largo: "🍺 ¡Fondo a tu vaso, sin respirar!" },
     ],
     picante: [
-      { corto: "Prenda", largo: "👕 Quítate una prenda." },
-      { corto: "Beso", largo: "💋 Dale un beso a quien elija el grupo (si acepta)." },
+      { corto: "Prenda", largo: "👕 Quítate una prenda. Tú escoges cuál." },
+      { corto: "Beso", largo: "💋 Dale un beso a quien escoja el grupo (si acepta)." },
     ],
   };
   const COLORES_RULETA = ["var(--amber)", "var(--rosa)", "var(--lime)", "var(--uva)", "var(--agave)", "var(--chile)", "var(--oro)", "var(--cielo)"];
@@ -892,8 +892,10 @@
 
     const html = rellenar(carta.texto, carta.modo);
     let instr = "";
-    if (carta.tipo === "yonunca") instr = "Toma un trago quien sí lo haya hecho.";
-    if (carta.tipo === "probable") instr = "A la cuenta de 3, todos señalan. El más señalado toma 2.";
+    const tragos = (n) => `${n} ${n === 1 ? "trago" : "tragos"}`;
+    const base = TRAGOS[carta.modo] || 1;
+    if (carta.tipo === "yonunca") instr = `Quien sí lo haya hecho, se echa ${tragos(base)}.`;
+    if (carta.tipo === "probable") instr = `A la de tres, todos señalan. Al más señalado le tocan ${tragos(base + 1)}.`;
     if (carta.tipo === "regla") {
       const dura = 5 + Math.floor(Math.random() * 5);
       estado.reglas.push({ html, restantes: dura, modo: carta.modo, mia: carta.mia, nueva: true });
