@@ -3,6 +3,12 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   const MAX_REGLAS = 3;
+  // Para que las reglas no se amontonen: cartas de espera entre una regla y otra,
+  // cuánto dura cada una, y cartas mínimas entre dos cierres.
+  const ESPERA_REGLA = [4, 9];
+  const DURACION_REGLA = [6, 14];
+  const ENTRE_CIERRES = 3;
+  const entre = ([min, max]) => min + Math.floor(Math.random() * (max - min + 1));
   const CARTAS_POR_NIVEL = 15; // en modo progresivo sin límite de cartas
   const DURACIONES = [
     { cartas: 30, nombre: "Corta · 30" },
@@ -769,6 +775,8 @@
     estado.porNivel = cartasPorNivel(estado.fases.length);
     estado.stats = { reto: 0, grupo: 0, yonunca: 0, probable: 0, regla: 0, juego: 0, comodines: 0 };
     estado.pendientes = [];
+    estado.reglaDesde = entre(ESPERA_REGLA);
+    estado.ultimoCierre = -ENTRE_CIERRES;
     estado.mazo = armarMazo(estado.fases[0]);
     estado.pos = 0;
     estado.reglas = [];
@@ -870,9 +878,12 @@
     estado.pendientes.forEach((p) => { p.faltan--; });
 
     // Las reglas duran «hasta nuevo aviso»: el aviso es su propia carta de cierre.
-    const vencida = estado.reglas.findIndex((r) => r.restantes <= 0);
+    // Si dos reglas vencen juntas, la segunda espera unas cartas para no cerrar en cadena.
+    const puedeCerrar = estado.numCarta - estado.ultimoCierre >= ENTRE_CIERRES;
+    const vencida = puedeCerrar ? estado.reglas.findIndex((r) => r.restantes <= 0) : -1;
     if (vencida >= 0) {
       const [regla] = estado.reglas.splice(vencida, 1);
+      estado.ultimoCierre = estado.numCarta;
       renderReglas();
       estado.nombresCarta = [];
       sonido.play("carta");
@@ -896,23 +907,27 @@
       sonido.play("carta");
       sonido.play("regla");
       vibrar(12);
-      mostrarCarta({ tipo: p.tipo, modo: p.modo, mia: p.mia, html, continuacion: true });
+      mostrarCarta({ tipo: p.tipo, modo: p.modo, mia: p.mia, html, instr: `<span class="origen">Viene de: ${p.origen}</span>`, continuacion: true });
       return;
     }
 
     let carta;
-    let intentos = 0;
-    do {
+    for (let intentos = 0; ; intentos++) {
       carta = sacar();
-      intentos++;
-    } while (carta.tipo === "regla" && estado.reglas.length >= MAX_REGLAS && intentos < 50);
+      const bloqueada = carta.tipo === "regla" && (estado.reglas.length >= MAX_REGLAS || estado.numCarta < estado.reglaDesde);
+      if (!bloqueada || intentos >= 80) break;
+      // La regla que todavía no puede salir se guarda más adelante en el mazo en vez de perderse.
+      estado.mazo.splice(estado.pos - 1, 1);
+      estado.pos--;
+      estado.mazo.splice(Math.min(estado.mazo.length, estado.pos + entre([4, 20])), 0, carta);
+    }
     estado.cartasFase++;
     estado.stats[carta.tipo] = (estado.stats[carta.tipo] || 0) + 1;
 
     const html = rellenar(carta.texto, carta.modo);
     const fijos = { ...estado.elegidos };
     if (carta.luego) {
-      estado.pendientes.push({ texto: carta.luego, tipo: carta.tipo, modo: carta.modo, mia: carta.mia, fijos, faltan: 3 + Math.floor(Math.random() * 4) });
+      estado.pendientes.push({ texto: carta.luego, origen: html, tipo: carta.tipo, modo: carta.modo, mia: carta.mia, fijos, faltan: entre([3, 6]) });
     }
 
     // Las cartas del juego traen el castigo en la frase; solo las de «Mis cartas» de estos tipos llevan instrucción.
@@ -925,12 +940,13 @@
       estado.reglas.push({
         html,
         fin: carta.fin ? rellenar(carta.fin, carta.modo, fijos) : "",
-        restantes: 6 + Math.floor(Math.random() * 6),
+        restantes: entre(DURACION_REGLA),
         modo: carta.modo,
         mia: carta.mia,
         nueva: true,
       });
       if (!/nuevo aviso/i.test(carta.texto)) instr = "Hasta nuevo aviso.";
+      estado.reglaDesde = estado.numCarta + entre(ESPERA_REGLA);
       renderReglas();
     }
 
@@ -1002,7 +1018,8 @@
     el.id = "carta";
     el.className = "carta tipo-" + tipo;
     el.innerHTML = `
-      ${tipo === "reto" ? "" : `<div class="carta-tipo"><span aria-hidden="true">${t.emoji}</span> ${t.nombre}</div>`}
+      ${continuacion ? `<div class="carta-tipo"><span aria-hidden="true">↩️</span> La revancha</div>`
+        : tipo === "reto" ? "" : `<div class="carta-tipo"><span aria-hidden="true">${t.emoji}</span> ${t.nombre}</div>`}
       <div class="carta-cuerpo">
         <p class="carta-texto">${html}</p>
         <p class="carta-instr">${instr}</p>
@@ -1015,7 +1032,7 @@
         ${extra}
       </div>
       <div class="carta-pie">
-        <span>${continuacion ? "↩️ Y ahora… · " : ""}${pie || (mia ? "⭐ Carta tuya" : m.emoji + " " + m.nombre)}</span>
+        <span>${pie || (mia ? "⭐ Carta tuya" : m.emoji + " " + m.nombre)}</span>
         <span>${tipo === "final" || !estado.numCarta ? "" : estado.limite ? `${estado.numCarta}/${estado.limite}` : "#" + estado.numCarta}</span>
       </div>`;
     mesa.append(el);
