@@ -299,6 +299,70 @@ button { font: inherit; color: inherit; }
 .barra-juego { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .barra-der { display: flex; align-items: center; gap: 8px; }
 
+/* Avance de la partida cuando hay límite de cartas */
+.progreso { flex: 1; height: 8px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+.progreso i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--lime), var(--amber), var(--chile));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .4s ease;
+}
+
+/* Reglas activas: cartitas amarillas siempre a la vista */
+.reglas-vivas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.regla-viva {
+  --c: var(--oro);
+  appearance: none;
+  position: relative;
+  min-width: 0;
+  height: 82px;
+  padding: 20px 7px 6px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--oro);
+  color: var(--ink);
+  text-align: left;
+  font-size: .72rem;
+  font-weight: 800;
+  line-height: 1.2;
+  box-shadow: 0 6px 14px -8px rgba(0, 0, 0, .7), inset 0 -3px 0 rgba(0, 0, 0, .12);
+  transform: rotate(-1.2deg);
+  cursor: pointer;
+}
+.regla-viva:nth-child(2) { transform: rotate(.8deg); }
+.regla-viva:nth-child(3) { transform: rotate(-.5deg); }
+.regla-viva.nueva { animation: cartita .55s cubic-bezier(.2, 1.4, .4, 1); }
+.regla-viva-txt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+.regla-viva::before {
+  content: "📜 REGLA";
+  position: absolute;
+  top: 5px;
+  left: 8px;
+  font-size: .6rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+  opacity: .7;
+}
+.regla-viva .nom { background: var(--ink); color: var(--oro); }
+.regla-viva-cuenta {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  padding: 1px 4px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, .14);
+  font-size: .66rem;
+  font-weight: 900;
+}
+
 .pill {
   appearance: none;
   border: 0;
@@ -352,7 +416,7 @@ button { font: inherit; color: inherit; }
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: 360px;
+  min-height: 320px;
   padding: 22px;
   border-radius: 28px;
   background: var(--c);
@@ -412,6 +476,14 @@ button { font: inherit; color: inherit; }
 .tipo-fin { --c: var(--gris); }
 .tipo-inicio { --c: var(--amber); }
 .tipo-nivel { --c: var(--chile); }
+.tipo-final { --c: var(--oro); }
+.final-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(54px, 1fr)); gap: 6px; }
+.final-stats div { display: grid; justify-items: center; padding: 8px 4px; border-radius: 12px; background: rgba(0, 0, 0, .1); }
+.final-stats b { font-size: 1.5rem; line-height: 1; }
+.final-stats span { font-size: .72rem; font-weight: 700; opacity: .8; }
+.final-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.carta .btn { min-height: 50px; background: var(--ink); color: var(--c); }
+.carta .btn-sec { background: rgba(0, 0, 0, .14); color: var(--ink); }
 .tipo-nivel .carta-texto { font-size: clamp(1.9rem, 9vw, 2.6rem); }
 .tipo-nivel .carta-tipo span { display: inline-block; animation: brinda .7s .3s ease-in-out 2; }
 
@@ -763,6 +835,9 @@ button { font: inherit; color: inherit; }
 }
 @keyframes resalta {
   from { background-color: transparent; color: inherit; }
+}
+@keyframes cartita {
+  from { opacity: 0; transform: translateY(40px) scale(.5) rotate(12deg); }
 }
 @keyframes tachar {
   to { background-size: 100% 3px; }

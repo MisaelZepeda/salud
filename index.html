@@ -45,7 +45,7 @@
           </span>
         </label>
       </div>
-      <p class="legal">Solo para mayores de edad. Toma con responsabilidad, toma agua y nadie maneja. · v7</p>
+      <p class="legal">Solo para mayores de edad. Toma con responsabilidad, toma agua y nadie maneja. · v8</p>
     </section>
 
     <section id="jugadores" class="pantalla" hidden>
@@ -84,6 +84,8 @@
       <label class="campo" id="campo-festejado" hidden>🎉 ¿A quién festejamos?
         <select id="festejado"></select>
       </label>
+      <h3 class="subtitulo">⏱️ Duración de la partida</h3>
+      <div class="chips" id="chips-duracion" role="group" aria-label="Duración de la partida"></div>
       <p class="ayuda" id="ayuda-mias"></p>
       <div class="acciones">
         <button class="btn" id="btn-empezar">¡Empezar!</button>
@@ -93,11 +95,10 @@
     <section id="juego" class="pantalla" hidden>
       <header class="barra-juego">
         <button class="btn-icono" id="btn-salir" aria-label="Terminar partida">✕</button>
-        <div class="barra-der">
-          <button class="btn-icono" data-sonido aria-label="Silenciar sonidos">🔊</button>
-          <button class="pill" id="btn-reglas" type="button">📜 Reglas <span id="num-reglas" class="pill-num">0</span></button>
-        </div>
+        <div class="progreso" id="progreso" hidden><i></i></div>
+        <button class="btn-icono" data-sonido aria-label="Silenciar sonidos">🔊</button>
       </header>
+      <div class="reglas-vivas" id="reglas-vivas" aria-label="Reglas activas" hidden></div>
       <div class="mesa" id="mesa" aria-live="polite"></div>
       <div class="pie-juego">
         <p class="pista" id="pista">Toca la carta para sacar la siguiente</p>
@@ -162,7 +163,7 @@
       <li><b class="etq etq-reto">🎯 Reto</b> Cúmplelo o toma.</li>
       <li><b class="etq etq-yonunca">🙊 Yo nunca</b> Toma quien sí lo haya hecho.</li>
       <li><b class="etq etq-probable">👉 Más probable</b> A la cuenta de 3 todos señalan. El más señalado toma 2.</li>
-      <li><b class="etq etq-regla">📜 Regla</b> Dura varias cartas. Quien la rompa, toma.</li>
+      <li><b class="etq etq-regla">📜 Regla</b> Dura varias cartas y se queda arriba como cartita amarilla. Quien la rompa, toma.</li>
       <li><b class="etq etq-juego">🎲 Minijuego</b> Caricachupas, mímica, duelos… Algunos traen temporizador.</li>
     </ul>
     <ul class="tipos">
