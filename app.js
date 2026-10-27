@@ -15,7 +15,7 @@
   const LETRAS = "ABCDEFGHIJLMNOPRSTV";
   const MODO_POR_ID = Object.fromEntries(MODOS.map((m) => [m.id, m]));
   const ORDEN_MODOS = MODOS.map((m) => m.id);
-  const NOMBRE_CORTO = { reto: "Reto", yonunca: "Yo nunca", probable: "Más probable", regla: "Regla", juego: "Minijuego" };
+  const NOMBRE_CORTO = { reto: "Reto", grupo: "Para todos", yonunca: "Yo nunca", probable: "Más probable", regla: "Regla", juego: "Minijuego" };
   const SIN_MOVIMIENTO = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   // localStorage puede fallar en modo privado; el juego sigue funcionando sin él.
@@ -45,6 +45,8 @@
     numCarta: 0,
     ultimoCambio: 0,
     crono: null,
+    pendientes: [],
+    elegidos: {},
     progresivo: guardado.leer("salud.progresivo", false),
     limite: [30, 50, 80, 0].includes(guardado.leer("salud.limite", 50)) ? guardado.leer("salud.limite", 50) : 50,
     porNivel: CARTAS_POR_NIVEL,
@@ -744,8 +746,7 @@
     for (const modo of modos) {
       for (const [tipo, lista] of Object.entries(CARTAS[modo])) {
         for (const item of lista) {
-          const { texto, tiempo = 0 } = typeof item === "string" ? { texto: item } : item;
-          cartas.push({ modo, tipo, texto, tiempo });
+          cartas.push({ modo, tipo, tiempo: 0, ...(typeof item === "string" ? { texto: item } : item) });
         }
       }
     }
@@ -766,7 +767,8 @@
     estado.fase = 0;
     estado.cartasFase = 0;
     estado.porNivel = cartasPorNivel(estado.fases.length);
-    estado.stats = { reto: 0, yonunca: 0, probable: 0, regla: 0, juego: 0, comodines: 0 };
+    estado.stats = { reto: 0, grupo: 0, yonunca: 0, probable: 0, regla: 0, juego: 0, comodines: 0 };
+    estado.pendientes = [];
     estado.mazo = armarMazo(estado.fases[0]);
     estado.pos = 0;
     estado.reglas = [];
@@ -837,11 +839,14 @@
     return elegidos;
   }
 
-  function rellenar(texto, modo) {
+  // «fijos» reutiliza los jugadores de otra carta (continuaciones y cierres de reglas).
+  function rellenar(texto, modo, fijos = {}) {
     const f = estado.festejadoPartida;
     const conFestejado = texto.includes("{f}");
     const n = texto.includes("{p2}") ? 2 : texto.includes("{p}") ? 1 : 0;
-    const [a, b] = elegir(n, conFestejado ? [f] : []);
+    let [a, b] = [fijos.a, fijos.b];
+    if ((n >= 1 && !a) || (n === 2 && !b)) [a, b] = elegir(n, conFestejado ? [f] : []);
+    estado.elegidos = { a, b };
     estado.nombresCarta = [a, b, conFestejado ? f : null].filter(Boolean);
     const chip = (j) => `<b class="nom">${escapar(j)}</b>`;
     const tema = chip(azar(TEMAS[modo]));
@@ -862,7 +867,9 @@
     }
     estado.numCarta++;
     estado.reglas.forEach((r) => { r.restantes--; });
+    estado.pendientes.forEach((p) => { p.faltan--; });
 
+    // Las reglas duran «hasta nuevo aviso»: el aviso es su propia carta de cierre.
     const vencida = estado.reglas.findIndex((r) => r.restantes <= 0);
     if (vencida >= 0) {
       const [regla] = estado.reglas.splice(vencida, 1);
@@ -870,14 +877,26 @@
       estado.nombresCarta = [];
       sonido.play("carta");
       sonido.play("finRegla");
-      mostrarCarta({ tipo: "fin", modo: regla.modo, mia: regla.mia, html: `<span class="tachado">${regla.html}</span>`, instr: "Ya pueden volver a la normalidad." });
+      mostrarCarta(regla.fin
+        ? { tipo: "fin", modo: regla.modo, mia: regla.mia, html: regla.fin, instr: `<span class="tachado">${regla.html}</span>` }
+        : { tipo: "fin", modo: regla.modo, mia: regla.mia, html: `<span class="tachado">${regla.html}</span>`, instr: "Ya pueden volver a la normalidad." });
       return;
     }
 
-    renderReglas(); // actualiza lo que le queda a cada cartita
-
     if (estado.fase < estado.fases.length - 1 && estado.cartasFase >= estado.porNivel) {
       subirNivel();
+      return;
+    }
+
+    // Continuación de una carta anterior, con los mismos jugadores.
+    const lista = estado.pendientes.findIndex((p) => p.faltan <= 0);
+    if (lista >= 0) {
+      const [p] = estado.pendientes.splice(lista, 1);
+      const html = rellenar(p.texto, p.modo, p.fijos);
+      sonido.play("carta");
+      sonido.play("regla");
+      vibrar(12);
+      mostrarCarta({ tipo: p.tipo, modo: p.modo, mia: p.mia, html, continuacion: true });
       return;
     }
 
@@ -891,22 +910,35 @@
     estado.stats[carta.tipo] = (estado.stats[carta.tipo] || 0) + 1;
 
     const html = rellenar(carta.texto, carta.modo);
+    const fijos = { ...estado.elegidos };
+    if (carta.luego) {
+      estado.pendientes.push({ texto: carta.luego, tipo: carta.tipo, modo: carta.modo, mia: carta.mia, fijos, faltan: 3 + Math.floor(Math.random() * 4) });
+    }
+
+    // Las cartas del juego traen el castigo en la frase; solo las de «Mis cartas» de estos tipos llevan instrucción.
     let instr = "";
     const tragos = (n) => `${n} ${n === 1 ? "trago" : "tragos"}`;
-    const base = TRAGOS[carta.modo] || 1;
+    const base = TRAGOS[carta.modo] || 2;
     if (carta.tipo === "yonunca") instr = `Quien sí lo haya hecho, se echa ${tragos(base)}.`;
     if (carta.tipo === "probable") instr = `A la de tres, todos señalan. Al más señalado le tocan ${tragos(base + 1)}.`;
     if (carta.tipo === "regla") {
-      const dura = 5 + Math.floor(Math.random() * 5);
-      estado.reglas.push({ html, restantes: dura, modo: carta.modo, mia: carta.mia, nueva: true });
-      instr = `Dura ${dura} cartas. Quien la rompa, toma.`;
+      estado.reglas.push({
+        html,
+        fin: carta.fin ? rellenar(carta.fin, carta.modo, fijos) : "",
+        restantes: 6 + Math.floor(Math.random() * 6),
+        modo: carta.modo,
+        mia: carta.mia,
+        nueva: true,
+      });
+      if (!/nuevo aviso/i.test(carta.texto)) instr = "Hasta nuevo aviso.";
       renderReglas();
     }
 
     sonido.play("carta");
     if (carta.tipo === "regla") sonido.play("regla");
     if (carta.tipo === "juego") sonido.play("juego");
-    vibrar(12);
+    if (carta.tipo === "grupo") sonido.play("nivel");
+    vibrar(carta.tipo === "grupo" ? [30, 40, 30] : 12);
 
     const el = mostrarCarta({ tipo: carta.tipo, modo: carta.modo, mia: carta.mia, html, instr, tiempo: carta.tiempo });
     if (/\b(shot|shots|fondo)\b/i.test(carta.texto)) {
@@ -917,6 +949,7 @@
 
   function terminarPartida() {
     estado.reglas = [];
+    estado.pendientes = [];
     renderReglas();
     estado.nombresCarta = [];
     const s = estado.stats;
@@ -929,8 +962,8 @@
       pie: `${estado.numCarta} cartas`,
       extra: `
         <div class="final-stats">
-          ${dato(s.reto, "retos")}
-          ${dato(s.yonunca + s.probable, "preguntas")}
+          ${dato(s.reto + s.yonunca + s.probable, "retos")}
+          ${dato(s.grupo, "para todos")}
           ${dato(s.juego, "minijuegos")}
           ${dato(s.regla, "reglas")}
           ${dato(s.comodines, "comodines")}
@@ -948,7 +981,7 @@
   }
 
   // Cada carta es un elemento nuevo: la anterior sale volando y la nueva sube del mazo.
-  function mostrarCarta({ tipo, modo, html, instr = "", pie, tiempo = 0, mia = false, extra = "" }) {
+  function mostrarCarta({ tipo, modo, html, instr = "", pie, tiempo = 0, mia = false, extra = "", continuacion = false }) {
     const t = TIPOS[tipo];
     const m = MODO_POR_ID[modo];
     const mesa = $("#mesa");
@@ -969,7 +1002,7 @@
     el.id = "carta";
     el.className = "carta tipo-" + tipo;
     el.innerHTML = `
-      <div class="carta-tipo"><span aria-hidden="true">${t.emoji}</span> ${t.nombre}</div>
+      ${tipo === "reto" ? "" : `<div class="carta-tipo"><span aria-hidden="true">${t.emoji}</span> ${t.nombre}</div>`}
       <div class="carta-cuerpo">
         <p class="carta-texto">${html}</p>
         <p class="carta-instr">${instr}</p>
@@ -982,7 +1015,7 @@
         ${extra}
       </div>
       <div class="carta-pie">
-        <span>${pie || (mia ? "⭐ Carta tuya" : m.emoji + " " + m.nombre)}</span>
+        <span>${continuacion ? "↩️ Y ahora… · " : ""}${pie || (mia ? "⭐ Carta tuya" : m.emoji + " " + m.nombre)}</span>
         <span>${tipo === "final" || !estado.numCarta ? "" : estado.limite ? `${estado.numCarta}/${estado.limite}` : "#" + estado.numCarta}</span>
       </div>`;
     mesa.append(el);
@@ -1006,13 +1039,13 @@
       b.type = "button";
       b.className = "regla-viva";
       b.classList.toggle("nueva", !!r.nueva);
-      b.innerHTML = `<span class="regla-viva-txt">${r.html}</span><span class="regla-viva-cuenta" aria-label="Quedan ${r.restantes} cartas">⏳${r.restantes}</span>`;
+      b.innerHTML = `<span class="regla-viva-txt">${r.html}</span>`;
       b.addEventListener("click", () => $("#dlg-reglas").showModal());
       r.nueva = false;
       return b;
     }));
     $("#lista-reglas").innerHTML = estado.reglas
-      .map((r) => `<li>${r.html}<small>Quedan ${r.restantes} ${r.restantes === 1 ? "carta" : "cartas"}</small></li>`)
+      .map((r) => `<li>${r.html}<small>Hasta nuevo aviso</small></li>`)
       .join("");
   }
 
@@ -1128,11 +1161,12 @@
   // ---------- Mis cartas ----------
 
   const EJEMPLOS = {
-    reto: "Ej: {p}, cántale una de José José a {p2} o toma 2.",
+    reto: "Ej: Si alguna vez te dormiste en una peda, reparte 3 tragos.",
+    grupo: "Ej: Todos los que traigan tenis blancos se echan 3 tragos.",
     yonunca: "Ej: Yo nunca me he dormido en una peda.",
     probable: "Ej: ¿Quién es más probable que se case primero?",
-    regla: "Ej: Prohibido decir «güey». Quien lo diga, toma.",
-    juego: "Ej: {p} y {p2}, duelo de chistes. Quien se ría primero, toma 2.",
+    regla: "Ej: Prohibido decir «güey» hasta nuevo aviso. Cada uno, 2 tragos.",
+    juego: "Ej: {p} y {p2}, duelo de chistes. Quien se ría primero, 3 tragos.",
   };
   let tipoNuevo = "reto";
 

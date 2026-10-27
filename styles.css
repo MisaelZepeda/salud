@@ -471,11 +471,12 @@ button { font: inherit; color: inherit; }
 .tipo-reto { --c: var(--amber); }
 .tipo-yonunca { --c: var(--agave); }
 .tipo-probable { --c: var(--rosa); }
-.tipo-regla { --c: var(--lime); }
+.tipo-regla { --c: var(--oro); }
+.tipo-grupo { --c: var(--chile); }
 .tipo-juego { --c: var(--uva); }
-.tipo-fin { --c: var(--gris); }
+.tipo-fin { --c: var(--oro); }
 .tipo-inicio { --c: var(--amber); }
-.tipo-nivel { --c: var(--chile); }
+.tipo-nivel { --c: var(--cielo); }
 .tipo-final { --c: var(--oro); }
 .final-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(54px, 1fr)); gap: 6px; }
 .final-stats div { display: grid; justify-items: center; padding: 8px 4px; border-radius: 12px; background: rgba(0, 0, 0, .1); }
@@ -786,7 +787,8 @@ button { font: inherit; color: inherit; }
 .etq-reto { background: var(--amber); }
 .etq-yonunca { background: var(--agave); }
 .etq-probable { background: var(--rosa); }
-.etq-regla { background: var(--lime); }
+.etq-regla { background: var(--oro); }
+.etq-grupo { background: var(--chile); }
 .etq-juego { background: var(--uva); }
 
 .lista-reglas { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
