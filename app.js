@@ -85,20 +85,51 @@
 
   const sonido = (() => {
     let ctx = null;
+    let salida = null;
     let activo = guardado.leer("salud.sonido", true);
+
+    // Deja ver el estado del audio en <html data-audio="..."> para diagnosticar.
+    const marcar = () => { document.documentElement.dataset.audio = ctx ? ctx.state : "apagado"; };
 
     function contexto() {
       if (!activo) return null;
       try {
-        ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
-        if (ctx.state === "suspended") ctx.resume();
+        if (!ctx) {
+          ctx = new (window.AudioContext || window.webkitAudioContext)();
+          // Todo pasa por un compresor: así se puede subir el volumen sin que truene la bocina.
+          const compresor = ctx.createDynamicsCompressor();
+          compresor.threshold.value = -14;
+          compresor.knee.value = 6;
+          compresor.ratio.value = 8;
+          compresor.attack.value = 0.003;
+          compresor.release.value = 0.2;
+          compresor.connect(ctx.destination);
+          salida = ctx.createGain();
+          salida.gain.value = 1;
+          salida.connect(compresor);
+          ctx.onstatechange = marcar;
+        }
+        if (ctx.state !== "running") ctx.resume()?.catch?.(() => {});
       } catch {
         return null;
       }
+      marcar();
       return ctx;
     }
 
-    function tono(frec, { t = 0, dur = 0.15, tipo = "sine", vol = 0.2, hasta } = {}) {
+    // iPhone solo deja sonar si el primer sonido arranca dentro de un toque.
+    function desbloquear() {
+      const c = contexto();
+      if (!c) return;
+      try {
+        const fuente = c.createBufferSource();
+        fuente.buffer = c.createBuffer(1, 1, 22050);
+        fuente.connect(salida);
+        fuente.start(0);
+      } catch {}
+    }
+
+    function tono(frec, { t = 0, dur = 0.15, tipo = "sine", vol = 0.4, hasta } = {}) {
       const c = contexto();
       if (!c) return;
       const t0 = c.currentTime + t;
@@ -110,12 +141,13 @@
       g.gain.setValueAtTime(0.0001, t0);
       g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      o.connect(g).connect(c.destination);
+      o.connect(g);
+      g.connect(salida);
       o.start(t0);
       o.stop(t0 + dur + 0.02);
     }
 
-    function soplido({ t = 0, dur = 0.18, vol = 0.22, desde = 500, hasta = 2600 } = {}) {
+    function soplido({ t = 0, dur = 0.2, vol = 0.6, desde = 700, hasta = 3200 } = {}) {
       const c = contexto();
       if (!c) return;
       const t0 = c.currentTime + t;
@@ -134,41 +166,45 @@
       g.gain.setValueAtTime(0.0001, t0);
       g.gain.exponentialRampToValueAtTime(vol, t0 + dur * 0.35);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      fuente.connect(filtro).connect(g).connect(c.destination);
+      fuente.connect(filtro);
+      filtro.connect(g);
+      g.connect(salida);
       fuente.start(t0);
       fuente.stop(t0 + dur);
     }
 
+    // Frecuencias arriba de ~500 Hz: las bocinas de celular casi no reproducen graves.
     const efectos = {
-      toque: () => tono(540, { dur: 0.06, tipo: "triangle", vol: 0.1 }),
+      toque: () => tono(660, { dur: 0.07, tipo: "triangle", vol: 0.35 }),
       carta: () => soplido(),
       brindis: () => {
-        tono(2637, { dur: 0.6, vol: 0.1 });
-        tono(3951, { dur: 0.4, vol: 0.05 });
-        tono(2793, { t: 0.11, dur: 0.7, vol: 0.09 });
-        tono(4186, { t: 0.11, dur: 0.45, vol: 0.04 });
+        tono(2637, { dur: 0.6, vol: 0.3 });
+        tono(3951, { dur: 0.4, vol: 0.15 });
+        tono(2793, { t: 0.11, dur: 0.7, vol: 0.26 });
+        tono(4186, { t: 0.11, dur: 0.45, vol: 0.12 });
       },
       regla: () => {
-        tono(660, { dur: 0.12, tipo: "triangle", vol: 0.16 });
-        tono(990, { t: 0.1, dur: 0.22, tipo: "triangle", vol: 0.16 });
+        tono(660, { dur: 0.12, tipo: "triangle", vol: 0.45 });
+        tono(990, { t: 0.1, dur: 0.22, tipo: "triangle", vol: 0.45 });
       },
       finRegla: () => {
-        tono(880, { dur: 0.12, tipo: "triangle", vol: 0.14 });
-        tono(587, { t: 0.1, dur: 0.25, tipo: "triangle", vol: 0.14 });
+        tono(880, { dur: 0.12, tipo: "triangle", vol: 0.42 });
+        tono(587, { t: 0.1, dur: 0.25, tipo: "triangle", vol: 0.42 });
       },
-      juego: () => [523, 659, 784, 1047].forEach((f, i) => tono(f, { t: i * 0.06, dur: 0.12, tipo: "square", vol: 0.05 })),
-      inicioCrono: () => tono(330, { dur: 0.3, tipo: "sawtooth", vol: 0.07, hasta: 990 }),
-      tic: () => tono(1250, { dur: 0.035, tipo: "square", vol: 0.05 }),
-      ticFuerte: () => tono(1560, { dur: 0.08, tipo: "square", vol: 0.1 }),
-      no: () => tono(170, { dur: 0.12, tipo: "square", vol: 0.07 }),
+      juego: () => [523, 659, 784, 1047].forEach((f, i) => tono(f, { t: i * 0.06, dur: 0.12, tipo: "square", vol: 0.16 })),
+      inicioCrono: () => tono(440, { dur: 0.3, tipo: "sawtooth", vol: 0.22, hasta: 1320 }),
+      tic: () => tono(1250, { dur: 0.04, tipo: "square", vol: 0.16 }),
+      ticFuerte: () => tono(1560, { dur: 0.09, tipo: "square", vol: 0.3 }),
+      no: () => tono(300, { dur: 0.14, tipo: "square", vol: 0.22, hasta: 220 }),
       fin: () => {
-        [0, 0.17, 0.34].forEach((t) => [392, 494, 587].forEach((f) => tono(f, { t, dur: 0.14, tipo: "sawtooth", vol: 0.07 })));
-        [392, 494, 587].forEach((f) => tono(f, { t: 0.52, dur: 0.6, tipo: "sawtooth", vol: 0.07, hasta: f * 1.34 }));
+        [0, 0.17, 0.34].forEach((t) => [523, 659, 784].forEach((f) => tono(f, { t, dur: 0.14, tipo: "sawtooth", vol: 0.18 })));
+        [523, 659, 784].forEach((f) => tono(f, { t: 0.52, dur: 0.6, tipo: "sawtooth", vol: 0.18, hasta: f * 1.34 }));
       },
     };
 
     return {
       get activo() { return activo; },
+      get listo() { return !!ctx && ctx.state === "running"; },
       play(nombre) {
         try { efectos[nombre]?.(); } catch {}
       },
@@ -176,7 +212,7 @@
         activo = !activo;
         guardado.escribir("salud.sonido", activo);
       },
-      despertar() { contexto(); },
+      desbloquear,
     };
   })();
 
@@ -192,8 +228,14 @@
     renderSonido();
   }));
 
-  // El audio solo puede arrancar después de que la persona toca la pantalla.
-  document.addEventListener("pointerdown", () => sonido.despertar(), { once: true });
+  // El navegador solo deja arrancar el audio al soltar un toque (touchend/click) o con una tecla.
+  // Se reintenta en cada toque hasta que el audio esté corriendo.
+  const EVENTOS_DESBLOQUEO = ["touchend", "click", "keydown"];
+  function desbloquearAudio() {
+    sonido.desbloquear();
+    if (sonido.listo) EVENTOS_DESBLOQUEO.forEach((t) => document.removeEventListener(t, desbloquearAudio, true));
+  }
+  EVENTOS_DESBLOQUEO.forEach((t) => document.addEventListener(t, desbloquearAudio, true));
 
   // Un clic suave en todos los botones.
   document.addEventListener("click", (e) => {
@@ -818,11 +860,11 @@
   const instalada = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
   if (esIOS && !instalada) $("#nota-ios").hidden = false;
 
-  // Cuando hay una versión nueva, recarga solo si estás en la pantalla de inicio.
+  // Cuando hay una versión nueva, recarga, salvo a media partida o escribiendo una carta.
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
     const habiaVersion = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (habiaVersion && estado.pantalla === "inicio") location.reload();
+      if (habiaVersion && estado.pantalla !== "juego" && estado.pantalla !== "mias") location.reload();
     });
     navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
