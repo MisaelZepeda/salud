@@ -1,0 +1,19 @@
+{
+  "name": "¡Salud! — El juego para la peda",
+  "short_name": "¡Salud!",
+  "description": "Juego de cartas para tomar con amigos. Gratis, sin anuncios y funciona sin internet.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#15100c",
+  "theme_color": "#15100c",
+  "lang": "es-MX",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
