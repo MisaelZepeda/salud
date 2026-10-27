@@ -3,8 +3,12 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   const MAX_REGLAS = 3;
+  const CARTAS_POR_NIVEL = 15;
+  const COMODINES = 2;
+  const DURACION_GIRO = 3600;
   const LETRAS = "ABCDEFGHIJLMNOPRSTV";
   const MODO_POR_ID = Object.fromEntries(MODOS.map((m) => [m.id, m]));
+  const ORDEN_MODOS = MODOS.map((m) => m.id);
   const NOMBRE_CORTO = { reto: "Reto", yonunca: "Yo nunca", probable: "Más probable", regla: "Regla", juego: "Minijuego" };
   const SIN_MOVIMIENTO = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -35,6 +39,16 @@
     numCarta: 0,
     ultimoCambio: 0,
     crono: null,
+    progresivo: guardado.leer("salud.progresivo", false),
+    festejado: guardado.leer("salud.festejado", ""),
+    festejadoPartida: "",
+    fases: [],
+    fase: 0,
+    cartasFase: 0,
+    comodines: {},
+    nombresCarta: [],
+    tipoActual: null,
+    codigoCompartir: "",
   };
 
   // ---------- Utilidades ----------
@@ -222,14 +236,24 @@
         [0, 0.17, 0.34].forEach((t) => [523, 659, 784].forEach((f) => tono(f, { t, dur: 0.14, tipo: "sawtooth", vol: 0.18 })));
         [523, 659, 784].forEach((f) => tono(f, { t: 0.52, dur: 0.6, tipo: "sawtooth", vol: 0.18, hasta: f * 1.34 }));
       },
+      // Clics que se van espaciando, como una ruleta que frena.
+      giro: (dur = 3.5) => {
+        const n = 30;
+        for (let k = 0; k < n; k++) tono(1700, { t: dur * Math.pow(k / n, 1.9), dur: 0.03, tipo: "square", vol: 0.14 });
+      },
+      nivel: () => {
+        [523, 659, 784, 1047].forEach((f, i) => tono(f, { t: i * 0.08, dur: 0.14, tipo: "triangle", vol: 0.4 }));
+        [1047, 1319, 1568].forEach((f) => tono(f, { t: 0.34, dur: 0.6, tipo: "triangle", vol: 0.25 }));
+      },
+      comodin: () => [1319, 1568, 2093, 2637].forEach((f, i) => tono(f, { t: i * 0.05, dur: 0.25, vol: 0.28 })),
     };
 
     return {
       get activo() { return activo; },
       get listo() { return !!ctx && ctx.state === "running"; },
       get ignorarSilencio() { return ignorarSilencio; },
-      play(nombre) {
-        try { efectos[nombre]?.(); } catch {}
+      play(nombre, ...args) {
+        try { efectos[nombre]?.(...args); } catch {}
       },
       alternar() {
         activo = !activo;
@@ -277,7 +301,7 @@
 
   // Un clic suave en todos los botones.
   document.addEventListener("click", (e) => {
-    if (e.target.closest(".btn, .btn-icono, .chip, .modo, .pill, .lista-jugadores button, .lista-mias button")) {
+    if (e.target.closest(".btn, .btn-icono, .chip, .modo, .pill, .herr, .lista-jugadores button, .lista-mias button")) {
       sonido.play("toque");
     }
   });
@@ -290,15 +314,17 @@
   }
 
   // Lanza emojis en todas direcciones desde un punto de la pantalla.
+  // Si hay una ventana abierta, van dentro de ella para que no queden tapados.
   function lluvia(emojis, { x = innerWidth / 2, y = innerHeight / 2, n = 14 } = {}) {
     if (SIN_MOVIMIENTO.matches) return;
+    const contenedor = document.querySelector("dialog[open]") || document.body;
     for (let i = 0; i < n; i++) {
       const p = document.createElement("span");
       p.className = "particula";
       p.textContent = azar(emojis);
       p.style.left = x + "px";
       p.style.top = y + "px";
-      document.body.append(p);
+      contenedor.append(p);
       const ang = Math.random() * Math.PI * 2;
       const dist = 70 + Math.random() * 150;
       const dx = Math.cos(ang) * dist;
@@ -430,25 +456,63 @@
 
   // ---------- Modos ----------
 
+  const ordenar = (ids) => ORDEN_MODOS.filter((id) => ids.includes(id));
+  const modosNucleo = () => ordenar(estado.modos.filter((id) => !MODO_POR_ID[id].tema));
+  const modosTema = () => ordenar(estado.modos.filter((id) => MODO_POR_ID[id].tema));
+  const nombreModo = (id) => MODO_POR_ID[id].emoji + " " + MODO_POR_ID[id].nombre;
+
+  function botonModo(m, recien) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "modo modo-" + m.id;
+    b.classList.toggle("recien", m.id === recien);
+    b.setAttribute("aria-pressed", String(estado.modos.includes(m.id)));
+    b.innerHTML = `
+      <span class="modo-emoji" aria-hidden="true">${m.emoji}</span>
+      <span><span class="modo-nombre">${m.nombre}</span><span class="modo-desc">${m.desc}</span></span>
+      <span class="modo-check" aria-hidden="true">✓</span>`;
+    b.addEventListener("click", () => alternarModo(m));
+    return b;
+  }
+
   function renderModos(recien) {
-    const cont = $("#lista-modos");
-    cont.replaceChildren(...MODOS.map((m) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "modo modo-" + m.id;
-      b.classList.toggle("recien", m.id === recien);
-      b.setAttribute("aria-pressed", String(estado.modos.includes(m.id)));
-      b.innerHTML = `
-        <span class="modo-emoji" aria-hidden="true">${m.emoji}</span>
-        <span><span class="modo-nombre">${m.nombre}</span><span class="modo-desc">${m.desc}</span></span>
-        <span class="modo-check" aria-hidden="true">✓</span>`;
-      b.addEventListener("click", () => alternarModo(m));
-      return b;
-    }));
+    $("#lista-modos").replaceChildren(...MODOS.filter((m) => !m.tema).map((m) => botonModo(m, recien)));
+    $("#lista-temas").replaceChildren(...MODOS.filter((m) => m.tema).map((m) => botonModo(m, recien)));
     $("#btn-empezar").disabled = estado.modos.length === 0;
+
+    // El modo progresivo necesita al menos dos niveles normales para poder subir.
+    const nucleo = modosNucleo();
+    const chk = $("#chk-progresivo");
+    chk.disabled = nucleo.length < 2;
+    chk.checked = estado.progresivo && !chk.disabled;
+    $("#op-progresivo").classList.toggle("apagado", chk.disabled);
+    $("#ayuda-progresivo").textContent = chk.disabled
+      ? "Elige al menos 2 niveles de arriba para usarlo."
+      : `Empieza en ${nombreModo(nucleo[0])} y sube solo cada ${CARTAS_POR_NIVEL} cartas.`;
+
+    const conFestejado = estado.modos.some((id) => MODO_POR_ID[id].festejado);
+    $("#campo-festejado").hidden = !conFestejado;
+    if (conFestejado) {
+      const sel = $("#festejado");
+      sel.replaceChildren(new Option("Que lo elija el juego", ""), ...estado.jugadores.map((j) => new Option(j, j)));
+      sel.value = estado.jugadores.includes(estado.festejado) ? estado.festejado : "";
+    }
+
     const n = misCartasActivas().length;
     $("#ayuda-mias").textContent = n ? `⭐ Incluye ${n} ${n === 1 ? "carta tuya" : "cartas tuyas"}.` : "";
   }
+
+  $("#chk-progresivo").addEventListener("change", (e) => {
+    estado.progresivo = e.target.checked;
+    guardado.escribir("salud.progresivo", estado.progresivo);
+    sonido.play("toque");
+    renderModos();
+  });
+
+  $("#festejado").addEventListener("change", (e) => {
+    estado.festejado = e.target.value;
+    guardado.escribir("salud.festejado", estado.festejado);
+  });
 
   function activarModo(m) {
     estado.modos.push(m.id);
@@ -486,9 +550,172 @@
     return estado.mias.filter((c) => c.modo === "todos" || estado.modos.includes(c.modo));
   }
 
-  function armarMazo() {
+  // ---------- Botella, comodines y ruleta de castigos ----------
+
+  // Gira un elemento varias vueltas hasta que el ángulo «destino» (0 = arriba) quede arriba.
+  function girar(el, desde, destino, dlg, alTerminar) {
+    const actual = ((desde % 360) + 360) % 360;
+    const hasta = desde + 360 * 5 + ((destino - actual + 360) % 360);
+    const dur = SIN_MOVIMIENTO.matches ? 0 : DURACION_GIRO;
+    void el.offsetWidth; // si la ventana se acaba de abrir, sin esto no habría animación
+    el.style.transitionDuration = dur + "ms";
+    el.style.transform = `rotate(${hasta}deg)`;
+    if (dur) sonido.play("giro", dur / 1000);
+    clearTimeout(el.temporizador);
+    el.temporizador = setTimeout(() => { if (dlg.open) alTerminar(); }, dur + 60);
+    return hasta;
+  }
+
+  let anguloBotella = 0;
+
+  function renderRuedo() {
+    const ruedo = $("#ruedo");
+    ruedo.querySelectorAll(".asiento").forEach((e) => e.remove());
+    const n = estado.jugadores.length;
+    estado.jugadores.forEach((j, i) => {
+      const a = (i / n) * 2 * Math.PI;
+      const s = document.createElement("span");
+      s.className = "asiento";
+      s.textContent = j;
+      s.style.left = 50 + 41 * Math.sin(a) + "%";
+      s.style.top = 50 - 41 * Math.cos(a) + "%";
+      ruedo.append(s);
+    });
+    ruedo.classList.toggle("muchos", n > 8);
+  }
+
+  function girarBotella() {
+    const n = estado.jugadores.length;
+    const i = Math.floor(Math.random() * n);
+    const paso = 360 / n;
+    const destino = i * paso + (Math.random() - 0.5) * paso * 0.5;
+    $("#ruedo").querySelectorAll(".asiento").forEach((e) => e.classList.remove("elegido"));
+    $("#res-botella").textContent = "Girando…";
+    $("#girar-botella").disabled = true;
+    // El cuello de la botella apunta hacia arriba con 0°, así que se gira directo al ángulo del jugador.
+    anguloBotella = girar($("#botella"), anguloBotella, destino, $("#dlg-botella"), () => {
+      const asiento = $("#ruedo").querySelectorAll(".asiento")[i];
+      asiento.classList.add("elegido");
+      $("#res-botella").innerHTML = `¡Le tocó a <b class="nom-ruedo">${escapar(estado.jugadores[i])}</b>!`;
+      $("#girar-botella").disabled = false;
+      sonido.play("brindis");
+      vibrar(60);
+      lluvia(["🍾", "✨", "🥂"], { ...centroDe(asiento), n: 12 });
+    });
+  }
+
+  $("#btn-botella").addEventListener("click", () => {
+    renderRuedo();
+    $("#dlg-botella").showModal();
+    girarBotella();
+  });
+  $("#girar-botella").addEventListener("click", girarBotella);
+
+  function renderComodines() {
+    const enCarta = estado.nombresCarta;
+    const orden = [...estado.jugadores].sort((a, b) => enCarta.includes(b) - enCarta.includes(a));
+    $("#lista-comodines").replaceChildren(...orden.map((j) => {
+      const quedan = estado.comodines[j] ?? 0;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "comodin";
+      b.classList.toggle("en-carta", enCarta.includes(j));
+      b.disabled = quedan === 0;
+      b.innerHTML = `<span class="comodin-nombre"></span><span class="comodin-cartas">${"🃏".repeat(quedan) || "Sin comodines"}</span>`;
+      b.querySelector(".comodin-nombre").textContent = j;
+      b.setAttribute("aria-label", `${j}: le quedan ${quedan}`);
+      b.addEventListener("click", () => usarComodin(j));
+      return b;
+    }));
+  }
+
+  function usarComodin(j) {
+    estado.comodines[j]--;
+    $("#dlg-comodin").close();
+    const quedan = estado.comodines[j];
+    sonido.play("comodin");
+    avisar(`🃏 ${j} se salvó. ${quedan ? `Le queda ${quedan}.` : "Ya no le quedan comodines."}`);
+    lluvia(["🃏", "😇"], { ...centroDe($("#carta")), n: 10 });
+    siguiente();
+  }
+
+  $("#btn-comodin").addEventListener("click", () => {
+    if (["inicio", "fin", "nivel"].includes(estado.tipoActual)) {
+      sonido.play("no");
+      avisar("En esta carta no hay de qué salvarse");
+      return;
+    }
+    renderComodines();
+    $("#dlg-comodin").showModal();
+  });
+
+  const CASTIGOS = {
+    base: [
+      { corto: "2 tragos", largo: "🍹 Toma 2 tragos." },
+      { corto: "Te salvas", largo: "😇 ¡Te salvaste! Esta vez no tomas.", salva: true },
+      { corto: "Canta", largo: "🎤 Canta el coro de la canción que elija el grupo." },
+      { corto: "Imita", largo: "🎭 Imita a alguien del grupo hasta que adivinen quién es." },
+      { corto: "Doble", largo: "✌️ Tomas el doble de lo que decía la carta." },
+      { corto: "El grupo", largo: "👥 El grupo decide tu castigo." },
+    ],
+    fuerte: [
+      { corto: "1 shot", largo: "🥃 ¡Un shot!" },
+      { corto: "Fondo", largo: "🍺 ¡Fondo a tu vaso!" },
+    ],
+    picante: [
+      { corto: "Prenda", largo: "👕 Quítate una prenda." },
+      { corto: "Beso", largo: "💋 Dale un beso a quien elija el grupo (si acepta)." },
+    ],
+  };
+  const COLORES_RULETA = ["var(--amber)", "var(--rosa)", "var(--lime)", "var(--uva)", "var(--agave)", "var(--chile)", "var(--oro)", "var(--cielo)"];
+  let segmentos = [];
+  let anguloRuleta = 0;
+
+  // Los castigos dependen de los niveles elegidos; «Te salvas» siempre sale.
+  function armarRuleta() {
+    const fuerte = estado.modos.some((id) => ["fiesta", "sincontrol", "picante", "despedida"].includes(id));
+    const pool = [...CASTIGOS.base, ...(fuerte ? CASTIGOS.fuerte : []), ...(estado.modos.includes("picante") ? CASTIGOS.picante : [])];
+    const salva = pool.find((c) => c.salva);
+    segmentos = barajar([salva, ...barajar(pool.filter((c) => !c.salva)).slice(0, 7)]);
+    const paso = 360 / segmentos.length;
+    const rueda = $("#ruleta");
+    rueda.style.background = `conic-gradient(${segmentos.map((_, i) => `${COLORES_RULETA[i % COLORES_RULETA.length]} ${i * paso}deg ${(i + 1) * paso}deg`).join(", ")})`;
+    rueda.replaceChildren(...segmentos.map((c, i) => {
+      const s = document.createElement("span");
+      s.className = "ruleta-etq";
+      s.textContent = c.corto;
+      s.style.transform = `rotate(${(i + 0.5) * paso}deg)`;
+      return s;
+    }));
+  }
+
+  function girarRuleta() {
+    const paso = 360 / segmentos.length;
+    const i = Math.floor(Math.random() * segmentos.length);
+    // Para que el centro del segmento i quede bajo la flecha, la rueda gira 360° menos ese ángulo.
+    const destino = (360 - (i + 0.5) * paso + (Math.random() - 0.5) * paso * 0.6 + 360) % 360;
+    $("#res-ruleta").textContent = "Girando…";
+    $("#girar-ruleta").disabled = true;
+    anguloRuleta = girar($("#ruleta"), anguloRuleta, destino, $("#dlg-ruleta"), () => {
+      const c = segmentos[i];
+      $("#res-ruleta").textContent = c.largo;
+      $("#girar-ruleta").disabled = false;
+      sonido.play(c.salva ? "comodin" : "fin");
+      vibrar(c.salva ? 40 : [200, 80, 200]);
+      lluvia(c.salva ? ["😇", "✨"] : ["🔥", "💥", "🥃"], { ...centroDe($("#ruleta")), n: 14 });
+    });
+  }
+
+  $("#btn-ruleta").addEventListener("click", () => {
+    armarRuleta();
+    $("#dlg-ruleta").showModal();
+    girarRuleta();
+  });
+  $("#girar-ruleta").addEventListener("click", girarRuleta);
+
+  function armarMazo(modos) {
     const cartas = [];
-    for (const modo of estado.modos) {
+    for (const modo of modos) {
       for (const [tipo, lista] of Object.entries(CARTAS[modo])) {
         for (const item of lista) {
           const { texto, tiempo = 0 } = typeof item === "string" ? { texto: item } : item;
@@ -496,30 +723,67 @@
         }
       }
     }
-    for (const c of misCartasActivas()) {
-      cartas.push({ ...c, modo: c.modo === "todos" ? azar(estado.modos) : c.modo, mia: true });
+    for (const c of estado.mias.filter((c) => c.modo === "todos" || modos.includes(c.modo))) {
+      cartas.push({ ...c, modo: c.modo === "todos" ? azar(modos) : c.modo, mia: true });
     }
     return barajar(cartas);
   }
 
   function empezarPartida() {
     pararCrono();
-    estado.mazo = armarMazo();
+    // En modo progresivo, cada etapa es un nivel normal más todos los temáticos elegidos.
+    const nucleo = modosNucleo();
+    const temas = modosTema();
+    estado.fases = estado.progresivo && nucleo.length >= 2
+      ? nucleo.map((id) => [id, ...temas])
+      : [ordenar(estado.modos)];
+    estado.fase = 0;
+    estado.cartasFase = 0;
+    estado.mazo = armarMazo(estado.fases[0]);
     estado.pos = 0;
     estado.reglas = [];
     estado.usos = {};
     estado.numCarta = 0;
+    estado.comodines = Object.fromEntries(estado.jugadores.map((j) => [j, COMODINES]));
+    estado.festejadoPartida = estado.jugadores.includes(estado.festejado) ? estado.festejado : azar(estado.jugadores);
+    estado.nombresCarta = [];
     renderReglas();
-    const nombres = estado.jugadores.map((j) => `<b class="nom">${escapar(j)}</b>`).join(", ");
+
+    const chip = (j) => `<b class="nom">${escapar(j)}</b>`;
+    let html = "Hoy juegan " + estado.jugadores.map(chip).join(", ") + ".";
+    if (estado.modos.some((id) => MODO_POR_ID[id].festejado)) html += " Y hoy festejamos a " + chip(estado.festejadoPartida) + ".";
+    let instr = "Pongan el celular en medio y toquen la carta para empezar.";
+    if (estado.fases.length > 1) instr += ` Empiezan en ${nombreModo(estado.fases[0][0])} y suben cada ${CARTAS_POR_NIVEL} cartas.`;
+
     const el = mostrarCarta({
       tipo: "inicio",
-      modo: estado.modos[0],
-      html: "Hoy juegan " + nombres + ".",
-      instr: "Pongan el celular en medio y toquen la carta para empezar.",
-      pie: estado.modos.map((id) => MODO_POR_ID[id].emoji + " " + MODO_POR_ID[id].nombre).join(" · "),
+      modo: estado.fases[0][0],
+      html,
+      instr,
+      pie: ordenar(estado.modos).map(nombreModo).join(" · "),
     });
     sonido.play("brindis");
     lluvia(["🥂", "🍋", "🧂", "🌵", "✨"], { ...centroDe(el), n: 18 });
+  }
+
+  function subirNivel() {
+    estado.fase++;
+    estado.cartasFase = 0;
+    estado.mazo = armarMazo(estado.fases[estado.fase]);
+    estado.pos = 0;
+    estado.nombresCarta = [];
+    const id = estado.fases[estado.fase][0];
+    const ultimo = estado.fase === estado.fases.length - 1;
+    sonido.play("carta");
+    sonido.play("nivel");
+    vibrar([40, 60, 40]);
+    const el = mostrarCarta({
+      tipo: "nivel",
+      modo: id,
+      html: "Ahora: " + nombreModo(id),
+      instr: ultimo ? "Es el último nivel. De aquí ya no se baja." : `En ${CARTAS_POR_NIVEL} cartas vuelven a subir.`,
+    });
+    lluvia(["⬆️", "🔥", MODO_POR_ID[id].emoji], { ...centroDe(el), n: 16 });
   }
 
   function sacar() {
@@ -535,22 +799,28 @@
   }
 
   // Elige jugadores distintos, dando prioridad a los que han salido menos.
-  function elegir(n) {
-    const orden = barajar(estado.jugadores).sort((a, b) => (estado.usos[a] || 0) - (estado.usos[b] || 0));
+  function elegir(n, excluir = []) {
+    let candidatos = estado.jugadores.filter((j) => !excluir.includes(j));
+    if (candidatos.length < n) candidatos = estado.jugadores;
+    const orden = barajar(candidatos).sort((a, b) => (estado.usos[a] || 0) - (estado.usos[b] || 0));
     const elegidos = orden.slice(0, n);
     elegidos.forEach((j) => { estado.usos[j] = (estado.usos[j] || 0) + 1; });
     return elegidos;
   }
 
   function rellenar(texto, modo) {
+    const f = estado.festejadoPartida;
+    const conFestejado = texto.includes("{f}");
     const n = texto.includes("{p2}") ? 2 : texto.includes("{p}") ? 1 : 0;
-    const [a, b] = elegir(n);
+    const [a, b] = elegir(n, conFestejado ? [f] : []);
+    estado.nombresCarta = [a, b, conFestejado ? f : null].filter(Boolean);
     const chip = (j) => `<b class="nom">${escapar(j)}</b>`;
     const tema = chip(azar(TEMAS[modo]));
     const letra = chip(azar([...LETRAS]));
     return escapar(texto)
       .replace(/\{p\}/g, () => chip(a))
       .replace(/\{p2\}/g, () => chip(b))
+      .replace(/\{f\}/g, () => chip(f))
       .replace(/\{tema\}/g, () => tema)
       .replace(/\{letra\}/g, () => letra);
   }
@@ -564,9 +834,15 @@
     if (vencida >= 0) {
       const [regla] = estado.reglas.splice(vencida, 1);
       renderReglas();
+      estado.nombresCarta = [];
       sonido.play("carta");
       sonido.play("finRegla");
       mostrarCarta({ tipo: "fin", modo: regla.modo, mia: regla.mia, html: `<span class="tachado">${regla.html}</span>`, instr: "Ya pueden volver a la normalidad." });
+      return;
+    }
+
+    if (estado.fase < estado.fases.length - 1 && estado.cartasFase >= CARTAS_POR_NIVEL) {
+      subirNivel();
       return;
     }
 
@@ -576,6 +852,7 @@
       carta = sacar();
       intentos++;
     } while (carta.tipo === "regla" && estado.reglas.length >= MAX_REGLAS && intentos < 50);
+    estado.cartasFase++;
 
     const html = rellenar(carta.texto, carta.modo);
     let instr = "";
@@ -617,6 +894,7 @@
       setTimeout(() => vieja.remove(), 700);
     }
 
+    estado.tipoActual = tipo;
     const el = document.createElement("article");
     el.id = "carta";
     el.className = "carta tipo-" + tipo;
@@ -827,10 +1105,32 @@
   function vistaPrevia(texto) {
     return escapar(texto)
       .replace(/\{p\}/g, '<b class="nom">Jugador</b>')
-      .replace(/\{p2\}/g, '<b class="nom">Otro jugador</b>');
+      .replace(/\{p2\}/g, '<b class="nom">Otro jugador</b>')
+      .replace(/\{f\}/g, '<b class="nom">Festejado</b>');
+  }
+
+  function itemCarta(c, alBorrar) {
+    const li = document.createElement("li");
+    li.className = "mia tipo-" + c.tipo;
+    li.innerHTML = `
+      <div>
+        <span class="mia-tipo">${TIPOS[c.tipo].emoji} ${NOMBRE_CORTO[c.tipo]}${c.tiempo ? " · ⏱ " + formatoTiempo(c.tiempo) : ""}</span>
+        <p>${vistaPrevia(c.texto)}</p>
+        <small>${c.modo === "todos" ? "Todos los niveles" : nombreModo(c.modo)}</small>
+      </div>`;
+    if (alBorrar) {
+      const quitar = document.createElement("button");
+      quitar.type = "button";
+      quitar.textContent = "✕";
+      quitar.setAttribute("aria-label", "Borrar carta");
+      quitar.addEventListener("click", alBorrar);
+      li.append(quitar);
+    }
+    return li;
   }
 
   function renderMias(conNueva = false) {
+    prepararCompartir();
     const ul = $("#lista-mias");
     $("#num-mias").textContent = estado.mias.length;
     if (!estado.mias.length) {
@@ -838,30 +1138,146 @@
       return;
     }
     ul.replaceChildren(...estado.mias.map((c, i) => {
-      const li = document.createElement("li");
-      li.className = "mia tipo-" + c.tipo;
-      li.classList.toggle("nuevo", conNueva && i === 0);
-      const modo = c.modo === "todos" ? "Todos los niveles" : MODO_POR_ID[c.modo].emoji + " " + MODO_POR_ID[c.modo].nombre;
-      li.innerHTML = `
-        <div>
-          <span class="mia-tipo">${TIPOS[c.tipo].emoji} ${NOMBRE_CORTO[c.tipo]}${c.tiempo ? " · ⏱ " + formatoTiempo(c.tiempo) : ""}</span>
-          <p>${vistaPrevia(c.texto)}</p>
-          <small>${modo}</small>
-        </div>`;
-      const quitar = document.createElement("button");
-      quitar.type = "button";
-      quitar.textContent = "✕";
-      quitar.setAttribute("aria-label", "Borrar carta");
-      quitar.addEventListener("click", () => {
+      const li = itemCarta(c, () => {
         estado.mias = estado.mias.filter((x) => x.id !== c.id);
         guardado.escribir("salud.mias", estado.mias);
         renderMias();
         avisar("Carta borrada");
       });
-      li.append(quitar);
+      li.classList.toggle("nuevo", conNueva && i === 0);
       return li;
     }));
   }
+
+  // ---------- Compartir e importar cartas ----------
+  // Las cartas viajan dentro del link (#cartas=...), comprimidas cuando el navegador lo permite.
+  // Nunca pasan por un servidor.
+
+  const aBase64Url = (bytes) => {
+    let s = "";
+    for (const b of bytes) s += String.fromCharCode(b);
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  };
+  const deBase64Url = (texto) => Uint8Array.from(atob(texto.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+  const transformar = async (bytes, stream) => new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
+
+  async function codificarCartas(cartas) {
+    const bytes = new TextEncoder().encode(JSON.stringify(cartas.map((c) => [c.tipo, c.modo, c.tiempo || 0, c.texto])));
+    if ("CompressionStream" in window) {
+      try { return "z" + aBase64Url(await transformar(bytes, new CompressionStream("deflate-raw"))); } catch {}
+    }
+    return "j" + aBase64Url(bytes);
+  }
+
+  // Todo lo que llega en un link es ajeno: se valida campo por campo.
+  async function decodificarCartas(codigo) {
+    let bytes = deBase64Url(codigo.slice(1));
+    if (codigo[0] === "z") bytes = await transformar(bytes, new DecompressionStream("deflate-raw"));
+    else if (codigo[0] !== "j") throw new Error("Código desconocido");
+    const datos = JSON.parse(new TextDecoder().decode(bytes));
+    if (!Array.isArray(datos)) throw new Error("Formato inválido");
+    return datos.slice(0, 200).filter(Array.isArray).map(([tipo, modo, tiempo, texto]) => ({
+      tipo: String(tipo),
+      modo: String(modo),
+      tiempo: tipo === "juego" ? Math.min(600, Math.max(0, Math.round(Number(tiempo) || 0))) : 0,
+      texto: String(texto ?? "").trim().replace(/\s+/g, " ").slice(0, 240),
+    })).filter((c) => NOMBRE_CORTO[c.tipo] && (c.modo === "todos" || MODO_POR_ID[c.modo]) && c.texto.length >= 5);
+  }
+
+  // El código se prepara antes del toque: compartir tiene que llamarse en el momento del toque.
+  async function prepararCompartir() {
+    estado.codigoCompartir = "";
+    $("#btn-compartir").disabled = !estado.mias.length;
+    if (!estado.mias.length) return;
+    try { estado.codigoCompartir = await codificarCartas(estado.mias); } catch {}
+  }
+
+  $("#btn-compartir").addEventListener("click", async () => {
+    if (!estado.codigoCompartir) {
+      avisar("Escribe alguna carta primero");
+      return;
+    }
+    const url = `${location.origin}${location.pathname}#cartas=${estado.codigoCompartir}`;
+    const n = estado.mias.length;
+    const texto = `Te paso ${n === 1 ? "mi carta" : `mis ${n} cartas`} para ¡Salud! 🥂 Abre el link, o pégalo en «Mis cartas → Importar».`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "¡Salud!", text: texto, url });
+        return;
+      } catch (e) {
+        if (e.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      avisar("Link copiado. Pégalo en WhatsApp.");
+    } catch {
+      window.prompt("Copia este link y mándalo:", url);
+    }
+  });
+
+  let porImportar = [];
+  let pasoImportar = "entrada";
+
+  function abrirImportar(codigo = "") {
+    porImportar = [];
+    pasoImportar = "entrada";
+    $("#imp-texto").value = "";
+    $("#imp-entrada").hidden = false;
+    $("#imp-vista").hidden = true;
+    $("#imp-ok").textContent = "Revisar";
+    $("#dlg-importar").showModal();
+    if (codigo) revisarImportar(codigo);
+  }
+
+  const mismaCarta = (a, b) => a.tipo === b.tipo && a.modo === b.modo && a.texto === b.texto;
+
+  async function revisarImportar(codigo) {
+    let cartas = [];
+    try { cartas = await decodificarCartas(codigo); } catch {}
+    if (!cartas.length) {
+      sonido.play("no");
+      avisar("Ese link no trae cartas válidas");
+      return;
+    }
+    porImportar = cartas.filter((c, i) => !estado.mias.some((m) => mismaCarta(m, c)) && cartas.findIndex((x) => mismaCarta(x, c)) === i);
+    const repetidas = cartas.length - porImportar.length;
+    pasoImportar = "vista";
+    $("#imp-entrada").hidden = true;
+    $("#imp-vista").hidden = false;
+    $("#imp-resumen").textContent = porImportar.length
+      ? `Trae ${porImportar.length} ${porImportar.length === 1 ? "carta nueva" : "cartas nuevas"}${repetidas ? ` (${repetidas} ya las tenías)` : ""}.`
+      : "Ya tienes todas estas cartas.";
+    $("#imp-lista").replaceChildren(...porImportar.map((c) => itemCarta(c)));
+    $("#imp-ok").textContent = porImportar.length ? `Agregar ${porImportar.length}` : "Cerrar";
+  }
+
+  $("#imp-ok").addEventListener("click", () => {
+    if (pasoImportar === "entrada") {
+      const texto = $("#imp-texto").value;
+      revisarImportar(texto.match(/#cartas=([A-Za-z0-9_-]+)/)?.[1] || texto.trim());
+      return;
+    }
+    if (porImportar.length) {
+      const base = Date.now().toString(36);
+      estado.mias = [...porImportar.map((c, i) => ({ ...c, id: `${base}-${i}` })), ...estado.mias];
+      guardado.escribir("salud.mias", estado.mias);
+      sonido.play("comodin");
+      avisar(`⭐ Se agregaron ${porImportar.length} cartas`);
+      if (estado.pantalla === "mias") renderMias(true);
+    }
+    $("#dlg-importar").close();
+  });
+
+  $("#imp-pegar").addEventListener("click", async () => {
+    try {
+      $("#imp-texto").value = await navigator.clipboard.readText();
+    } catch {
+      avisar("Mantén presionado el cuadro y elige «Pegar»");
+    }
+  });
+
+  $("#btn-importar").addEventListener("click", () => abrirImportar());
 
   // ---------- Pantalla encendida durante la partida ----------
 
@@ -909,6 +1325,16 @@
   // ---------- Arranque ----------
 
   renderSonido();
+  const codigoRecibido = location.hash.startsWith("#cartas=") ? location.hash.slice("#cartas=".length) : "";
   history.replaceState({ pantalla: "inicio" }, "", location.pathname + location.search);
   mostrar("inicio", { push: false });
+  if (codigoRecibido) abrirImportar(codigoRecibido);
+
+  // Si el juego ya estaba abierto y pegan el link en la misma pestaña, no hay recarga.
+  window.addEventListener("hashchange", () => {
+    if (!location.hash.startsWith("#cartas=")) return;
+    const codigo = location.hash.slice("#cartas=".length);
+    history.replaceState({ pantalla: estado.pantalla }, "", location.pathname + location.search + (estado.pantalla === "inicio" ? "" : "#" + estado.pantalla));
+    abrirImportar(codigo);
+  });
 })();

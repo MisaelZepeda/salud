@@ -3,6 +3,10 @@
 Juego de cartas para tomar con amigos. App web instalable: gratis, sin anuncios y funciona sin internet.
 
 - 4 niveles: Calentamiento, Fiesta, Sin control y Picante +18 (se pueden mezclar). Unas 95 cartas por nivel.
+- 4 modos temáticos: Parejas, Despedida, Cumpleaños y Posada. En Despedida y Cumpleaños las cartas usan `{f}` para el festejado.
+- **Modo progresivo**: recorre los niveles elegidos de más suave a más fuerte, subiendo cada 15 cartas.
+- **Botella**, **comodines** (2 por jugador) y **ruleta de castigos** desde la barra de abajo de la partida.
+- **Compartir mis cartas**: van dentro del link (`#cartas=...`, comprimidas) y se importan al abrirlo o pegándolo en «Importar».
 - 5 tipos de cartas: Retos, Yo nunca, ¿Quién es más probable?, Reglas que duran varias cartas y Minijuegos (Caricachupas, ¡Bum!, mímica, duelos…), algunos con temporizador.
 - **Mis cartas**: escribe tus propias cartas desde la app; se guardan en el celular y se mezclan al jugar.
 - Animaciones y efectos de sonido (generados en el momento, sin archivos de audio). Se pueden silenciar con 🔊.
