@@ -662,7 +662,7 @@
     $("#dlg-comodin").close();
     const quedan = estado.comodines[j];
     sonido.play("comodin");
-    avisar(`🃏 ${j} se salvó. ${quedan ? `Le queda ${quedan}.` : "Ya no le quedan comodines."}`);
+    avisar(`🃏 ${j} se salvó de esta. ${quedan ? `Le queda ${quedan}.` : "Ya se le acabaron, a sufrir."}`);
     lluvia(["🃏", "😇"], { ...centroDe($("#carta")), n: 10 });
     siguiente();
   }
@@ -679,19 +679,19 @@
 
   const CASTIGOS = {
     base: [
-      { corto: "3 tragos", largo: "🍹 Échate 3 tragos y sin chillar." },
-      { corto: "Te salvas", largo: "😇 ¡Te salvaste! Qué suerte tienes, no tomas.", salva: true },
-      { corto: "Canta", largo: "🎤 Canta a todo pulmón el coro que escoja el grupo." },
+      { corto: "3 tragos", largo: "🍹 Échate 3 tragos y sin chillar, cabrón." },
+      { corto: "Te salvas", largo: "😇 ¡Te salvaste! Qué pinche suerte tienes.", salva: true },
+      { corto: "Canta", largo: "🎤 Canta a todo pulmón el coro que escoja el grupo. Desafina a gusto." },
       { corto: "Imita", largo: "🎭 Imita a alguien del grupo hasta que adivinen quién es." },
-      { corto: "Doble", largo: "✌️ Te toca el doble de lo que decía la carta. Ni modo." },
-      { corto: "El grupo", largo: "👥 El grupo decide tu castigo. Que se pongan creativos." },
+      { corto: "Doble", largo: "✌️ Te toca el doble de lo que decía la carta. Ni modo, te chingaste." },
+      { corto: "El grupo", largo: "👥 El grupo decide tu castigo. Que se pongan cabrones." },
     ],
     fuerte: [
       { corto: "Shot", largo: "🥃 ¡Shot! Y con grito de «¡ajúa!»." },
-      { corto: "Fondo", largo: "🍺 ¡Fondo a tu vaso, sin respirar!" },
+      { corto: "Fondo", largo: "🍺 ¡Fondo a tu vaso, sin respirar y sin hacer caras!" },
     ],
     picante: [
-      { corto: "Prenda", largo: "👕 Quítate una prenda. Tú escoges cuál." },
+      { corto: "Prenda", largo: "👕 Quítate una prenda. Tú escoges cuál, no te hagas." },
       { corto: "Beso", largo: "💋 Dale un beso a quien escoja el grupo (si acepta)." },
     ],
   };
@@ -780,9 +780,9 @@
     renderReglas();
 
     const chip = (j) => `<b class="nom">${escapar(j)}</b>`;
-    let html = "Hoy juegan " + estado.jugadores.map(chip).join(", ") + ".";
+    let html = "Hoy se ponen hasta la madre " + estado.jugadores.map(chip).join(", ") + ".";
     if (estado.modos.some((id) => MODO_POR_ID[id].festejado)) html += " Y hoy festejamos a " + chip(estado.festejadoPartida) + ".";
-    let instr = "Pongan el celular en medio y toquen la carta para empezar.";
+    let instr = "Pongan el cel en medio y toquen la carta. Quien no cumpla, toma. Aquí vale verga todo.";
     if (estado.limite) instr += ` La partida dura ${estado.limite} cartas.`;
     if (estado.fases.length > 1) instr += ` Empiezan en ${nombreModo(estado.fases[0][0])} y suben cada ${estado.porNivel} cartas.`;
 
@@ -812,7 +812,7 @@
       tipo: "nivel",
       modo: id,
       html: "Ahora: " + nombreModo(id),
-      instr: ultimo ? "Es el último nivel. De aquí ya no se baja." : `En ${estado.porNivel} cartas vuelven a subir.`,
+      instr: ultimo ? "Último nivel. De aquí ya no se baja, cabrones." : `Ahora sí se pone cabrón. En ${estado.porNivel} cartas vuelven a subir.`,
     });
     lluvia(["⬆️", "🔥", MODO_POR_ID[id].emoji], { ...centroDe(el), n: 16 });
   }
@@ -957,8 +957,8 @@
     const el = mostrarCarta({
       tipo: "final",
       modo: estado.fases[estado.fase][0],
-      html: "¡Se acabó la partida! 🥂",
-      instr: "Gracias por jugar. Tomen agua y que nadie maneje.",
+      html: "¡Se acabó la partida, cabrones! 🥂",
+      instr: "Tomen agua y que nadie maneje, no sean pendejos.",
       pie: `${estado.numCarta} cartas`,
       extra: `
         <div class="final-stats">
