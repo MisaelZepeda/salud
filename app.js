@@ -3,7 +3,13 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   const MAX_REGLAS = 3;
-  const CARTAS_POR_NIVEL = 15;
+  const CARTAS_POR_NIVEL = 15; // en modo progresivo sin límite de cartas
+  const DURACIONES = [
+    { cartas: 30, nombre: "Corta · 30" },
+    { cartas: 50, nombre: "Normal · 50" },
+    { cartas: 80, nombre: "Larga · 80" },
+    { cartas: 0, nombre: "Sin límite" },
+  ];
   const COMODINES = 2;
   const DURACION_GIRO = 3600;
   const LETRAS = "ABCDEFGHIJLMNOPRSTV";
@@ -40,6 +46,9 @@
     ultimoCambio: 0,
     crono: null,
     progresivo: guardado.leer("salud.progresivo", false),
+    limite: [30, 50, 80, 0].includes(guardado.leer("salud.limite", 50)) ? guardado.leer("salud.limite", 50) : 50,
+    porNivel: CARTAS_POR_NIVEL,
+    stats: {},
     festejado: guardado.leer("salud.festejado", ""),
     festejadoPartida: "",
     fases: [],
@@ -460,6 +469,8 @@
   const modosNucleo = () => ordenar(estado.modos.filter((id) => !MODO_POR_ID[id].tema));
   const modosTema = () => ordenar(estado.modos.filter((id) => MODO_POR_ID[id].tema));
   const nombreModo = (id) => MODO_POR_ID[id].emoji + " " + MODO_POR_ID[id].nombre;
+  // Con límite de cartas, los niveles se reparten en la partida; sin límite, se sube cada 15.
+  const cartasPorNivel = (niveles) => estado.limite ? Math.max(5, Math.floor(estado.limite / niveles)) : CARTAS_POR_NIVEL;
 
   function botonModo(m, recien) {
     const b = document.createElement("button");
@@ -488,7 +499,21 @@
     $("#op-progresivo").classList.toggle("apagado", chk.disabled);
     $("#ayuda-progresivo").textContent = chk.disabled
       ? "Elige al menos 2 niveles de arriba para usarlo."
-      : `Empieza en ${nombreModo(nucleo[0])} y sube solo cada ${CARTAS_POR_NIVEL} cartas.`;
+      : `Empieza en ${nombreModo(nucleo[0])} y sube solo cada ${cartasPorNivel(nucleo.length)} cartas.`;
+
+    $("#chips-duracion").replaceChildren(...DURACIONES.map((d) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip";
+      b.textContent = d.nombre;
+      b.setAttribute("aria-pressed", String(d.cartas === estado.limite));
+      b.addEventListener("click", () => {
+        estado.limite = d.cartas;
+        guardado.escribir("salud.limite", estado.limite);
+        renderModos();
+      });
+      return b;
+    }));
 
     const conFestejado = estado.modos.some((id) => MODO_POR_ID[id].festejado);
     $("#campo-festejado").hidden = !conFestejado;
@@ -631,6 +656,7 @@
 
   function usarComodin(j) {
     estado.comodines[j]--;
+    estado.stats.comodines++;
     $("#dlg-comodin").close();
     const quedan = estado.comodines[j];
     sonido.play("comodin");
@@ -640,7 +666,7 @@
   }
 
   $("#btn-comodin").addEventListener("click", () => {
-    if (["inicio", "fin", "nivel"].includes(estado.tipoActual)) {
+    if (["inicio", "fin", "nivel", "final"].includes(estado.tipoActual)) {
       sonido.play("no");
       avisar("En esta carta no hay de qué salvarse");
       return;
@@ -739,6 +765,8 @@
       : [ordenar(estado.modos)];
     estado.fase = 0;
     estado.cartasFase = 0;
+    estado.porNivel = cartasPorNivel(estado.fases.length);
+    estado.stats = { reto: 0, yonunca: 0, probable: 0, regla: 0, juego: 0, comodines: 0 };
     estado.mazo = armarMazo(estado.fases[0]);
     estado.pos = 0;
     estado.reglas = [];
@@ -753,7 +781,8 @@
     let html = "Hoy juegan " + estado.jugadores.map(chip).join(", ") + ".";
     if (estado.modos.some((id) => MODO_POR_ID[id].festejado)) html += " Y hoy festejamos a " + chip(estado.festejadoPartida) + ".";
     let instr = "Pongan el celular en medio y toquen la carta para empezar.";
-    if (estado.fases.length > 1) instr += ` Empiezan en ${nombreModo(estado.fases[0][0])} y suben cada ${CARTAS_POR_NIVEL} cartas.`;
+    if (estado.limite) instr += ` La partida dura ${estado.limite} cartas.`;
+    if (estado.fases.length > 1) instr += ` Empiezan en ${nombreModo(estado.fases[0][0])} y suben cada ${estado.porNivel} cartas.`;
 
     const el = mostrarCarta({
       tipo: "inicio",
@@ -781,7 +810,7 @@
       tipo: "nivel",
       modo: id,
       html: "Ahora: " + nombreModo(id),
-      instr: ultimo ? "Es el último nivel. De aquí ya no se baja." : `En ${CARTAS_POR_NIVEL} cartas vuelven a subir.`,
+      instr: ultimo ? "Es el último nivel. De aquí ya no se baja." : `En ${estado.porNivel} cartas vuelven a subir.`,
     });
     lluvia(["⬆️", "🔥", MODO_POR_ID[id].emoji], { ...centroDe(el), n: 16 });
   }
@@ -827,6 +856,10 @@
 
   function siguiente() {
     pararCrono();
+    if (estado.limite && estado.numCarta >= estado.limite) {
+      terminarPartida();
+      return;
+    }
     estado.numCarta++;
     estado.reglas.forEach((r) => { r.restantes--; });
 
@@ -841,7 +874,9 @@
       return;
     }
 
-    if (estado.fase < estado.fases.length - 1 && estado.cartasFase >= CARTAS_POR_NIVEL) {
+    renderReglas(); // actualiza lo que le queda a cada cartita
+
+    if (estado.fase < estado.fases.length - 1 && estado.cartasFase >= estado.porNivel) {
       subirNivel();
       return;
     }
@@ -853,6 +888,7 @@
       intentos++;
     } while (carta.tipo === "regla" && estado.reglas.length >= MAX_REGLAS && intentos < 50);
     estado.cartasFase++;
+    estado.stats[carta.tipo] = (estado.stats[carta.tipo] || 0) + 1;
 
     const html = rellenar(carta.texto, carta.modo);
     let instr = "";
@@ -860,7 +896,7 @@
     if (carta.tipo === "probable") instr = "A la cuenta de 3, todos señalan. El más señalado toma 2.";
     if (carta.tipo === "regla") {
       const dura = 5 + Math.floor(Math.random() * 5);
-      estado.reglas.push({ html, restantes: dura, modo: carta.modo, mia: carta.mia });
+      estado.reglas.push({ html, restantes: dura, modo: carta.modo, mia: carta.mia, nueva: true });
       instr = `Dura ${dura} cartas. Quien la rompa, toma.`;
       renderReglas();
     }
@@ -877,8 +913,40 @@
     }
   }
 
+  function terminarPartida() {
+    estado.reglas = [];
+    renderReglas();
+    estado.nombresCarta = [];
+    const s = estado.stats;
+    const dato = (num, txt) => `<div><b>${num}</b><span>${txt}</span></div>`;
+    const el = mostrarCarta({
+      tipo: "final",
+      modo: estado.fases[estado.fase][0],
+      html: "¡Se acabó la partida! 🥂",
+      instr: "Gracias por jugar. Tomen agua y que nadie maneje.",
+      pie: `${estado.numCarta} cartas`,
+      extra: `
+        <div class="final-stats">
+          ${dato(s.reto, "retos")}
+          ${dato(s.yonunca + s.probable, "preguntas")}
+          ${dato(s.juego, "minijuegos")}
+          ${dato(s.regla, "reglas")}
+          ${dato(s.comodines, "comodines")}
+        </div>
+        <div class="final-botones">
+          <button type="button" class="btn final-otra">🔁 Otra ronda</button>
+          <button type="button" class="btn btn-sec final-salir">Terminar</button>
+        </div>`,
+    });
+    sonido.play("carta");
+    sonido.play("nivel");
+    sonido.play("brindis");
+    vibrar([60, 80, 60]);
+    lluvia(["🥂", "🎉", "🍋", "✨"], { ...centroDe(el), n: 22 });
+  }
+
   // Cada carta es un elemento nuevo: la anterior sale volando y la nueva sube del mazo.
-  function mostrarCarta({ tipo, modo, html, instr = "", pie, tiempo = 0, mia = false }) {
+  function mostrarCarta({ tipo, modo, html, instr = "", pie, tiempo = 0, mia = false, extra = "" }) {
     const t = TIPOS[tipo];
     const m = MODO_POR_ID[modo];
     const mesa = $("#mesa");
@@ -909,34 +977,51 @@
             <span class="crono-txt">Toca la carta para iniciar el tiempo</span>
             <span class="crono-barra"><i></i></span>
           </div>` : ""}
+        ${extra}
       </div>
       <div class="carta-pie">
         <span>${pie || (mia ? "⭐ Carta tuya" : m.emoji + " " + m.nombre)}</span>
-        <span>${estado.numCarta ? "#" + estado.numCarta : ""}</span>
+        <span>${tipo === "final" || !estado.numCarta ? "" : estado.limite ? `${estado.numCarta}/${estado.limite}` : "#" + estado.numCarta}</span>
       </div>`;
     mesa.append(el);
     estado.ultimoCambio = Date.now();
+
+    const progreso = $("#progreso");
+    progreso.hidden = !estado.limite;
+    if (estado.limite) progreso.firstElementChild.style.transform = `scaleX(${Math.min(1, estado.numCarta / estado.limite)})`;
 
     if (tiempo) prepararCrono(el, tiempo);
     else actualizarPista();
     return el;
   }
 
-  let reglasAntes = 0;
+  // Las reglas activas se ven como cartitas amarillas arriba de la carta.
   function renderReglas() {
-    const n = estado.reglas.length;
-    $("#num-reglas").textContent = n;
-    $("#btn-reglas").classList.toggle("activa", n > 0);
-    if (n > reglasAntes) reiniciarAnimacion($("#btn-reglas"), "rebota");
-    reglasAntes = n;
-    $("#lista-reglas").innerHTML = n
-      ? estado.reglas.map((r) => `<li>${r.html}<small>Quedan ${r.restantes} ${r.restantes === 1 ? "carta" : "cartas"}</small></li>`).join("")
-      : `<li class="vacia">No hay reglas activas. Por ahora.</li>`;
+    const cont = $("#reglas-vivas");
+    cont.hidden = !estado.reglas.length;
+    cont.replaceChildren(...estado.reglas.map((r) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "regla-viva";
+      b.classList.toggle("nueva", !!r.nueva);
+      b.innerHTML = `<span class="regla-viva-txt">${r.html}</span><span class="regla-viva-cuenta" aria-label="Quedan ${r.restantes} cartas">⏳${r.restantes}</span>`;
+      b.addEventListener("click", () => $("#dlg-reglas").showModal());
+      r.nueva = false;
+      return b;
+    }));
+    $("#lista-reglas").innerHTML = estado.reglas
+      .map((r) => `<li>${r.html}<small>Quedan ${r.restantes} ${r.restantes === 1 ? "carta" : "cartas"}</small></li>`)
+      .join("");
   }
 
   // En una carta con tiempo, el primer toque arranca el temporizador y la carta
   // no cambia hasta que se acaba (o hasta que tocan «Saltar»).
-  function tocarMesa() {
+  function tocarMesa(e) {
+    if (estado.tipoActual === "final") {
+      if (e?.target.closest(".final-otra")) empezarPartida();
+      else if (e?.target.closest(".final-salir")) history.back();
+      return;
+    }
     if (Date.now() - estado.ultimoCambio < 300) return; // evita saltarse cartas con doble toque
     const fase = estado.crono?.fase;
     if (fase === "listo") {
@@ -964,16 +1049,12 @@
   function actualizarPista() {
     const fase = estado.crono?.fase;
     $("#pista").textContent =
+      estado.tipoActual === "final" ? "¿Otra ronda?" :
       fase === "listo" ? "Toca la carta para iniciar el tiempo" :
       fase === "corriendo" ? "Esperen a que se acabe el tiempo…" :
       "Toca la carta para sacar la siguiente";
     $("#btn-saltar").hidden = fase !== "listo" && fase !== "corriendo";
   }
-
-  $("#btn-reglas").addEventListener("click", () => {
-    renderReglas();
-    $("#dlg-reglas").showModal();
-  });
 
   $("#btn-salir").addEventListener("click", () => {
     const dlg = $("#dlg-salir");

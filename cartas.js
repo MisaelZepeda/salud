@@ -27,6 +27,7 @@ const TIPOS = {
   juego: { nombre: "Minijuego", emoji: "🎲" },
   fin: { nombre: "Se acabó la regla", emoji: "✅" },
   nivel: { nombre: "¡Subimos de nivel!", emoji: "⬆️" },
+  final: { nombre: "Fin de la partida", emoji: "🏁" },
 };
 
 const TEMAS = {
