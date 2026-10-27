@@ -39,6 +39,8 @@ body {
 button { font: inherit; color: inherit; }
 
 .app {
+  position: relative;
+  z-index: 1;
   max-width: 480px;
   margin: 0 auto;
   min-height: 100vh;
@@ -52,8 +54,31 @@ button { font: inherit; color: inherit; }
     max(16px, env(safe-area-inset-left));
 }
 
-.pantalla { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+.pantalla { flex: 1; display: flex; flex-direction: column; gap: 16px; animation: pantalla .3s ease-out both; }
 .pantalla[hidden] { display: none; }
+
+/* Burbujas del fondo */
+.burbujas { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.burbujas span {
+  position: absolute;
+  bottom: -40px;
+  left: var(--x);
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  border: 2px solid rgba(246, 166, 35, .28);
+  background: rgba(246, 166, 35, .05);
+  animation: burbuja var(--d) linear var(--r) infinite;
+}
+
+.particula {
+  position: fixed;
+  z-index: 50;
+  font-size: 28px;
+  line-height: 1;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
 
 /* ---------- Botones ---------- */
 
@@ -115,8 +140,14 @@ button { font: inherit; color: inherit; }
   gap: 6px;
   padding-top: 24px;
 }
-.hero-icono { border-radius: 28px; box-shadow: 0 18px 50px -18px rgba(246, 166, 35, .7); }
+.barra-inicio { display: flex; justify-content: flex-end; }
+.hero-icono {
+  border-radius: 28px;
+  box-shadow: 0 18px 50px -18px rgba(246, 166, 35, .7);
+  animation: balanceo 3.2s ease-in-out infinite;
+}
 .logo {
+  animation: logo .8s .1s cubic-bezier(.2, 1.5, .4, 1) both;
   margin: 12px 0 0;
   font-size: clamp(3.4rem, 19vw, 5.4rem);
   font-weight: 900;
@@ -127,7 +158,7 @@ button { font: inherit; color: inherit; }
   transform: rotate(-4deg);
   text-shadow: 0 4px 0 #8a4f0b;
 }
-.lema { margin: 14px 0 0; color: var(--muted); font-size: 1.05rem; }
+.lema { margin: 14px 0 0; color: var(--muted); font-size: 1.05rem; animation: sube .5s .5s ease-out both; }
 .legal { margin: 0; text-align: center; font-size: .8rem; color: var(--muted); opacity: .8; }
 
 /* ---------- Jugadores ---------- */
@@ -156,8 +187,8 @@ button { font: inherit; color: inherit; }
   border-radius: 999px;
   background: var(--surface-2);
   font-weight: 700;
-  animation: aparece .2s ease;
 }
+.lista-jugadores li.nuevo { animation: salta .45s cubic-bezier(.2, 1.6, .4, 1); }
 .lista-jugadores button {
   appearance: none;
   border: 0;
@@ -207,6 +238,8 @@ button { font: inherit; color: inherit; }
 }
 .modo[aria-pressed="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--surface)); }
 .modo[aria-pressed="true"] .modo-check { background: var(--c); border-color: var(--c); color: var(--ink); }
+.modo.recien .modo-check { animation: salta .45s cubic-bezier(.2, 1.6, .4, 1); }
+.modo.recien .modo-emoji { animation: meneo .5s ease-in-out; }
 
 .modo-calentamiento { --c: var(--lime); }
 .modo-fiesta { --c: var(--amber); }
@@ -216,6 +249,7 @@ button { font: inherit; color: inherit; }
 /* ---------- Juego ---------- */
 
 .barra-juego { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.barra-der { display: flex; align-items: center; gap: 8px; }
 
 .pill {
   appearance: none;
@@ -240,12 +274,33 @@ button { font: inherit; color: inherit; }
   place-items: center;
 }
 .pill.activa .pill-num { background: var(--lime); color: var(--ink); }
+.pill.rebota { animation: salta .5s cubic-bezier(.2, 1.6, .4, 1); }
+.pill-chica { min-height: 36px; padding: 0 14px; font-size: .9rem; flex: none; }
 
-.mesa { flex: 1; display: flex; cursor: pointer; user-select: none; -webkit-user-select: none; }
+/* La mesa apila las cartas en la misma celda: la vieja sale volando encima de la nueva. */
+.mesa {
+  flex: 1;
+  display: grid;
+  grid-template: 1fr / 1fr;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.mesa::before,
+.mesa::after {
+  content: "";
+  grid-area: 1 / 1;
+  z-index: 0;
+  border-radius: 28px;
+}
+.mesa::before { background: var(--surface-2); transform: rotate(-3.5deg) translate(-4px, 10px); }
+.mesa::after { background: var(--line); transform: rotate(2.5deg) translate(4px, 6px); opacity: .7; }
 
 .carta {
   --c: var(--amber);
-  flex: 1;
+  grid-area: 1 / 1;
+  z-index: 1;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -255,8 +310,18 @@ button { font: inherit; color: inherit; }
   background: var(--c);
   color: var(--ink);
   box-shadow: 0 24px 60px -28px var(--c), inset 0 -6px 0 rgba(0, 0, 0, .12);
+  animation: entra .5s cubic-bezier(.2, 1.25, .4, 1) both;
 }
-.carta.entra { animation: entra .32s cubic-bezier(.2, .8, .2, 1); }
+.carta.sale {
+  z-index: 2;
+  pointer-events: none;
+  animation: sale .38s cubic-bezier(.5, 0, .9, .4) forwards;
+}
+.carta .carta-tipo { animation: salta .45s .18s cubic-bezier(.2, 1.6, .4, 1) both; }
+.carta .carta-texto { animation: sube .4s .08s ease-out both; }
+.carta .carta-instr,
+.carta .crono { animation: sube .4s .2s ease-out both; }
+.carta .nom { animation: resalta .6s .35s ease-out both; }
 
 .carta-tipo {
   align-self: flex-start;
@@ -297,28 +362,52 @@ button { font: inherit; color: inherit; }
 .tipo-regla { --c: var(--lime); }
 .tipo-juego { --c: var(--uva); }
 .tipo-fin { --c: var(--gris); }
-.tipo-fin .carta-texto { text-decoration: line-through; text-decoration-thickness: 3px; opacity: .75; }
 .tipo-inicio { --c: var(--amber); }
 
-.pista { margin: 0; text-align: center; color: var(--muted); font-size: .9rem; }
+/* La regla que se acaba se tacha con una línea animada */
+.tipo-fin .tachado {
+  background: linear-gradient(var(--ink), var(--ink)) no-repeat 0 58% / 0 3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  animation: tachar .5s .45s ease-out forwards;
+}
+.tipo-inicio .carta-tipo span { display: inline-block; animation: brinda .7s .3s ease-in-out 2; }
 
+.pie-juego { position: relative; display: flex; align-items: center; justify-content: center; min-height: 36px; }
+.pista { margin: 0; text-align: center; color: var(--muted); font-size: .9rem; }
+.pie-juego .pill-chica { position: absolute; right: 0; }
+.pie-juego:has(#btn-saltar:not([hidden])) { justify-content: flex-start; }
+
+/* Temporizador de minijuegos */
 .crono {
-  appearance: none;
-  border: 0;
-  align-self: flex-start;
-  min-height: 52px;
-  padding: 0 20px;
-  border-radius: 14px;
+  display: grid;
+  gap: 6px;
+  padding: 12px 16px 14px;
+  border-radius: 18px;
   background: var(--ink);
   color: var(--c);
-  font-size: 1.15rem;
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
 }
-.crono:active { transform: scale(.97); }
-.crono.corriendo { animation: late 1s ease-in-out infinite; }
-.crono.terminado { background: var(--chile); color: var(--ink); }
+.crono-num { font-size: 2.6rem; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.crono-txt { font-weight: 800; font-size: .95rem; opacity: .9; }
+.crono-barra { height: 8px; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, var(--c) 25%, transparent); }
+.crono-barra i { display: block; height: 100%; border-radius: inherit; background: var(--c); transform-origin: left; transition: transform .1s linear; }
+
+.carta:not(.cronometrando):not(.tiempo-fuera) .crono-txt { animation: parpadea 1.4s ease-in-out infinite; }
+.cronometrando .crono-num { animation: late 1s ease-in-out infinite; }
+.ultimos .crono-num { color: var(--chile); animation: late .5s ease-in-out infinite; }
+.ultimos .crono { animation: tiembla .25s linear infinite; }
+.crono.espera { animation: niega .35s ease-in-out; }
+.tiempo-fuera .crono { background: var(--chile); color: var(--ink); animation: salta .5s cubic-bezier(.2, 1.6, .4, 1); }
+.tiempo-fuera .crono-barra { background: rgba(0, 0, 0, .15); }
+.tiempo-fuera::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #fff;
+  pointer-events: none;
+  animation: destello .6s ease-out forwards;
+}
 
 /* ---------- Mis cartas ---------- */
 
@@ -385,6 +474,7 @@ button { font: inherit; color: inherit; }
   border-left: 6px solid var(--c);
   background: var(--surface);
 }
+.lista-mias .mia.nuevo { animation: entra .5s cubic-bezier(.2, 1.25, .4, 1); }
 .lista-mias .mia > div { flex: 1; min-width: 0; }
 .lista-mias p { margin: 4px 0; font-weight: 700; overflow-wrap: anywhere; }
 .lista-mias small { color: var(--muted); }
@@ -461,11 +551,69 @@ button { font: inherit; color: inherit; }
 /* ---------- Animaciones ---------- */
 
 @keyframes entra {
-  from { opacity: 0; transform: translateY(18px) rotate(-1.5deg) scale(.96); }
+  from { opacity: 0; transform: translateY(36px) rotate(3deg) scale(.86); }
+  60% { opacity: 1; }
   to { opacity: 1; transform: none; }
 }
+@keyframes sale {
+  to { opacity: 0; transform: translate(-115%, -6%) rotate(-20deg); }
+}
+@keyframes sube {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes salta {
+  0% { transform: scale(.6); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+@keyframes resalta {
+  from { background-color: transparent; color: inherit; }
+}
+@keyframes tachar {
+  to { background-size: 100% 3px; }
+}
+@keyframes brinda {
+  0%, 100% { transform: rotate(0); }
+  30% { transform: rotate(-18deg); }
+  60% { transform: rotate(14deg); }
+}
 @keyframes late {
-  50% { transform: scale(1.04); }
+  50% { transform: scale(1.06); }
+}
+@keyframes parpadea {
+  50% { opacity: .45; }
+}
+@keyframes tiembla {
+  25% { transform: translateX(-2px) rotate(-.6deg); }
+  75% { transform: translateX(2px) rotate(.6deg); }
+}
+@keyframes niega {
+  20%, 60% { transform: translateX(-7px); }
+  40%, 80% { transform: translateX(7px); }
+}
+@keyframes destello {
+  from { opacity: .7; }
+  to { opacity: 0; }
+}
+@keyframes meneo {
+  25% { transform: rotate(-14deg) scale(1.15); }
+  75% { transform: rotate(10deg) scale(1.15); }
+}
+@keyframes logo {
+  from { opacity: 0; transform: scale(.2) rotate(-30deg); }
+  to { opacity: 1; transform: rotate(-4deg); }
+}
+@keyframes balanceo {
+  0%, 100% { transform: rotate(-5deg) translateY(0); }
+  50% { transform: rotate(5deg) translateY(-6px); }
+}
+@keyframes burbuja {
+  to { transform: translate(var(--w), -115vh); }
+}
+@keyframes pantalla {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
 }
 @keyframes aparece {
   from { opacity: 0; transform: scale(.96); }
@@ -474,4 +622,5 @@ button { font: inherit; color: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  .tipo-fin .tachado { background-size: 100% 3px; }
 }

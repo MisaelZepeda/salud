@@ -5,6 +5,8 @@ Juego de cartas para tomar con amigos. App web instalable: gratis, sin anuncios 
 - 4 niveles: Calentamiento, Fiesta, Sin control y Picante +18 (se pueden mezclar). Unas 95 cartas por nivel.
 - 5 tipos de cartas: Retos, Yo nunca, ¿Quién es más probable?, Reglas que duran varias cartas y Minijuegos (Caricachupas, ¡Bum!, mímica, duelos…), algunos con temporizador.
 - **Mis cartas**: escribe tus propias cartas desde la app; se guardan en el celular y se mezclan al jugar.
+- Animaciones y efectos de sonido (generados en el momento, sin archivos de audio). Se pueden silenciar con 🔊.
+- En los minijuegos con tiempo, tocar la carta inicia el temporizador y la carta no cambia hasta que se acaba (o hasta tocar «Saltar»).
 
 ## Archivos
 
