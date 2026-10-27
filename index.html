@@ -19,9 +19,13 @@
   <script src="app.js" defer></script>
 </head>
 <body>
+  <div class="burbujas" aria-hidden="true"></div>
   <main class="app">
 
     <section id="inicio" class="pantalla">
+      <div class="barra-inicio">
+        <button class="btn-icono" data-sonido aria-label="Silenciar sonidos">🔊</button>
+      </div>
       <div class="hero">
         <img src="icons/icon-192.png" alt="" width="120" height="120" class="hero-icono">
         <h1 class="logo">¡Salud!</h1>
@@ -69,12 +73,16 @@
     <section id="juego" class="pantalla" hidden>
       <header class="barra-juego">
         <button class="btn-icono" id="btn-salir" aria-label="Terminar partida">✕</button>
-        <button class="pill" id="btn-reglas" type="button">📜 Reglas <span id="num-reglas" class="pill-num">0</span></button>
+        <div class="barra-der">
+          <button class="btn-icono" data-sonido aria-label="Silenciar sonidos">🔊</button>
+          <button class="pill" id="btn-reglas" type="button">📜 Reglas <span id="num-reglas" class="pill-num">0</span></button>
+        </div>
       </header>
-      <div class="mesa" id="mesa">
-        <article id="carta" class="carta" aria-live="polite"></article>
+      <div class="mesa" id="mesa" aria-live="polite"></div>
+      <div class="pie-juego">
+        <p class="pista" id="pista">Toca la carta para sacar la siguiente</p>
+        <button class="pill pill-chica" id="btn-saltar" type="button" hidden>Saltar ⏭</button>
       </div>
-      <p class="pista">Toca la carta para sacar la siguiente</p>
     </section>
 
     <section id="mias" class="pantalla" hidden>
