@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>¡Salud! — El juego para la peda</title>
+  <meta name="description" content="Juego de cartas para tomar con amigos. Gratis, sin anuncios y funciona sin internet.">
+  <meta name="theme-color" content="#15100c">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="¡Salud!">
+  <link rel="stylesheet" href="styles.css">
+  <script src="cartas.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main class="app">
+
+    <section id="inicio" class="pantalla">
+      <div class="hero">
+        <img src="icons/icon-192.png" alt="" width="120" height="120" class="hero-icono">
+        <h1 class="logo">¡Salud!</h1>
+        <p class="lema">El juego de cartas para la peda.<br>Gratis, sin anuncios y funciona sin internet.</p>
+      </div>
+      <div class="acciones">
+        <button class="btn" id="btn-jugar">¡A jugar!</button>
+        <button class="btn btn-sec" id="btn-mias">✏️ Mis cartas</button>
+        <button class="btn btn-sec" id="btn-como">Cómo se juega</button>
+        <button class="btn btn-sec" id="btn-instalar" hidden>Instalar en mi celular</button>
+        <p class="nota" id="nota-ios" hidden>Para instalarla en iPhone: toca <b>Compartir</b> y luego <b>Agregar a inicio</b>.</p>
+      </div>
+      <p class="legal">Solo para mayores de edad. Toma con responsabilidad, toma agua y nadie maneja.</p>
+    </section>
+
+    <section id="jugadores" class="pantalla" hidden>
+      <header class="barra">
+        <button class="btn-icono" data-atras aria-label="Regresar">‹</button>
+        <h2>¿Quiénes juegan?</h2>
+      </header>
+      <form id="form-jugador" class="fila-agregar" autocomplete="off">
+        <input id="input-jugador" type="text" maxlength="20" placeholder="Escribe un nombre" aria-label="Nombre del jugador" enterkeyhint="done" autocapitalize="words">
+        <button class="btn btn-mini" type="submit" aria-label="Agregar jugador">+</button>
+      </form>
+      <ul id="lista-jugadores" class="lista-jugadores"></ul>
+      <p class="ayuda" id="ayuda-jugadores"></p>
+      <div class="acciones">
+        <button class="btn" id="btn-a-modos" disabled>Siguiente</button>
+      </div>
+    </section>
+
+    <section id="modos" class="pantalla" hidden>
+      <header class="barra">
+        <button class="btn-icono" data-atras aria-label="Regresar">‹</button>
+        <h2>¿Qué tan fuerte?</h2>
+      </header>
+      <p class="ayuda">Elige uno o varios niveles. Si eliges varios, las cartas se mezclan.</p>
+      <div id="lista-modos" class="lista-modos"></div>
+      <p class="ayuda" id="ayuda-mias"></p>
+      <div class="acciones">
+        <button class="btn" id="btn-empezar">¡Empezar!</button>
+      </div>
+    </section>
+
+    <section id="juego" class="pantalla" hidden>
+      <header class="barra-juego">
+        <button class="btn-icono" id="btn-salir" aria-label="Terminar partida">✕</button>
+        <button class="pill" id="btn-reglas" type="button">📜 Reglas <span id="num-reglas" class="pill-num">0</span></button>
+      </header>
+      <div class="mesa" id="mesa">
+        <article id="carta" class="carta" aria-live="polite"></article>
+      </div>
+      <p class="pista">Toca la carta para sacar la siguiente</p>
+    </section>
+
+    <section id="mias" class="pantalla" hidden>
+      <header class="barra">
+        <button class="btn-icono" data-atras aria-label="Regresar">‹</button>
+        <h2>Mis cartas</h2>
+      </header>
+      <form id="form-carta" class="editor" autocomplete="off">
+        <div class="chips" id="tipos-carta" role="group" aria-label="Tipo de carta"></div>
+        <textarea id="texto-carta" rows="3" maxlength="240" aria-label="Texto de la carta"></textarea>
+        <div class="chips">
+          <button type="button" class="chip" data-token="{p}">+ Jugador</button>
+          <button type="button" class="chip" data-token="{p2}">+ Otro jugador</button>
+        </div>
+        <p class="nota">Donde pongas <b>{p}</b> y <b>{p2}</b> saldrán nombres de jugadores al azar.</p>
+        <div class="fila-campos">
+          <label class="campo">Nivel
+            <select id="modo-carta"></select>
+          </label>
+          <label class="campo" id="campo-tiempo" hidden>Tiempo
+            <select id="tiempo-carta">
+              <option value="0">Sin tiempo</option>
+              <option value="10">10 s</option>
+              <option value="20">20 s</option>
+              <option value="30" selected>30 s</option>
+              <option value="45">45 s</option>
+              <option value="60">1 min</option>
+            </select>
+          </label>
+        </div>
+        <button class="btn" type="submit">Guardar carta</button>
+      </form>
+      <h3 class="subtitulo">Tus cartas <span id="num-mias" class="pill-num">0</span></h3>
+      <ul id="lista-mias" class="lista-mias"></ul>
+      <p class="nota">Tus cartas se guardan solo en este celular y se mezclan con las demás al jugar.</p>
+    </section>
+
+  </main>
+
+  <dialog id="dlg-como" class="dialogo">
+    <h2>Cómo se juega</h2>
+    <ol class="pasos">
+      <li>Escriban sus nombres y elijan qué tan fuerte quieren jugar.</li>
+      <li>Pongan el celular en medio y toquen la carta para sacar la siguiente.</li>
+      <li>Hagan lo que diga la carta. ¿No quieres hacerlo? Tomas.</li>
+    </ol>
+    <ul class="tipos">
+      <li><b class="etq etq-reto">🎯 Reto</b> Cúmplelo o toma.</li>
+      <li><b class="etq etq-yonunca">🙊 Yo nunca</b> Toma quien sí lo haya hecho.</li>
+      <li><b class="etq etq-probable">👉 Más probable</b> A la cuenta de 3 todos señalan. El más señalado toma 2.</li>
+      <li><b class="etq etq-regla">📜 Regla</b> Dura varias cartas. Quien la rompa, toma.</li>
+      <li><b class="etq etq-juego">🎲 Minijuego</b> Caricachupas, mímica, duelos… Algunos traen temporizador.</li>
+    </ul>
+    <p class="nota">Un <b>trago</b> es un sorbo. Un <b>shot</b> es un caballito de lo que estén tomando. Si alguien no toma alcohol, que juegue con refresco o agua.</p>
+    <form method="dialog"><button class="btn">Entendido</button></form>
+  </dialog>
+
+  <dialog id="dlg-picante" class="dialogo">
+    <h2>🌶️ Modo Picante +18</h2>
+    <p>Trae retos subidos de tono. Es solo para mayores de edad y todo es con consentimiento: si alguien no quiere, no pasa nada, solo toma.</p>
+    <form method="dialog" class="fila-botones">
+      <button class="btn btn-sec" value="no">Cancelar</button>
+      <button class="btn" value="si">Soy mayor</button>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-reglas" class="dialogo">
+    <h2>📜 Reglas activas</h2>
+    <ul id="lista-reglas" class="lista-reglas"></ul>
+    <form method="dialog"><button class="btn">Cerrar</button></form>
+  </dialog>
+
+  <dialog id="dlg-salir" class="dialogo">
+    <h2>¿Terminar la partida?</h2>
+    <p>Regresas a elegir el nivel. Los jugadores se quedan guardados.</p>
+    <form method="dialog" class="fila-botones">
+      <button class="btn btn-sec" value="no">Seguir jugando</button>
+      <button class="btn" value="si">Terminar</button>
+    </form>
+  </dialog>
+
+  <div id="aviso" class="aviso" role="status" aria-live="polite"></div>
+</body>
+</html>
