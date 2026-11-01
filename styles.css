@@ -502,6 +502,64 @@ button { font: inherit; color: inherit; }
 .pie-juego .pill-chica { position: absolute; right: 0; }
 .pie-juego:has(#btn-saltar:not([hidden])) { justify-content: flex-start; }
 
+/* Multipantalla */
+.multi-opciones { display: grid; gap: 10px; }
+.permisos { display: grid; gap: 8px; padding: 12px 14px; border-radius: 16px; background: var(--surface); }
+.permisos .ayuda { font-size: .9rem; }
+.check { display: flex; align-items: center; gap: 10px; font-weight: 700; cursor: pointer; }
+.check input { width: 22px; height: 22px; accent-color: var(--amber); }
+.btn-sala { position: relative; font-size: 1.3rem; }
+.sala-vistas {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--lime);
+  color: var(--ink);
+  font-size: .72rem;
+  font-weight: 900;
+  line-height: 20px;
+}
+.sala-vistas:empty { display: none; }
+.codigo-sala {
+  margin: 4px 0 14px;
+  padding: 14px 8px;
+  border-radius: 18px;
+  background: var(--bg);
+  color: var(--amber);
+  text-align: center;
+  font-size: clamp(2.6rem, 14vw, 3.4rem);
+  font-weight: 900;
+  letter-spacing: .3em;
+  text-indent: .3em;
+}
+.campo-codigo {
+  width: 100%;
+  min-height: 68px;
+  padding: 0 12px;
+  border-radius: 16px;
+  border: 2px solid var(--line);
+  background: var(--bg);
+  color: var(--amber);
+  text-align: center;
+  text-transform: uppercase;
+  font: inherit;
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: .35em;
+  text-indent: .35em;
+}
+.campo-codigo:focus { outline: none; border-color: var(--amber); }
+.sala-nota { margin-top: 12px !important; }
+/* En un satélite no hay controles del anfitrión */
+.modo-satelite .herramientas,
+.modo-satelite #btn-sala,
+.modo-satelite #girar-botella,
+.modo-satelite #girar-ruleta { display: none !important; }
+
 /* Herramientas de la partida */
 .herramientas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .herr {

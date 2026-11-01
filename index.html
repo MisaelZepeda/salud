@@ -15,6 +15,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="¡Salud!">
   <link rel="stylesheet" href="styles.css">
+  <script src="firebase-config.js" defer></script>
+  <script src="multi.js" defer></script>
   <script src="cartas.js" defer></script>
   <script src="app.js" defer></script>
 </head>
@@ -34,6 +36,7 @@
       <div class="acciones">
         <button class="btn" id="btn-jugar">¡A jugar!</button>
         <button class="btn btn-sec" id="btn-mias">✏️ Mis cartas</button>
+        <button class="btn btn-sec" id="btn-ver" hidden>📺 Ver la partida de alguien</button>
         <button class="btn btn-sec" id="btn-como">Cómo se juega</button>
         <button class="btn btn-sec" id="btn-instalar" hidden>Instalar en mi celular</button>
         <p class="nota" id="nota-ios" hidden>Para instalarla en iPhone: toca <b>Compartir</b> y luego <b>Agregar a inicio</b>.</p>
@@ -45,7 +48,7 @@
           </span>
         </label>
       </div>
-      <p class="legal">Solo para mayores de edad. Toma con responsabilidad, toma agua y nadie maneja. · v12</p>
+      <p class="legal">Solo para mayores de edad. Toma con responsabilidad, toma agua y nadie maneja. · v13</p>
     </section>
 
     <section id="jugadores" class="pantalla" hidden>
@@ -86,6 +89,22 @@
       </label>
       <h3 class="subtitulo">⏱️ Duración de la partida</h3>
       <div class="chips" id="chips-duracion" role="group" aria-label="Duración de la partida"></div>
+      <div class="multi-opciones" id="op-multi" hidden>
+        <h3 class="subtitulo">📡 Multipantalla</h3>
+        <label class="interruptor">
+          <input type="checkbox" id="chk-multi" role="switch">
+          <span>
+            <b>Que los demás vean las cartas en su celular</b>
+            <small>Al empezar te doy un código y un enlace para que se unan.</small>
+          </span>
+        </label>
+        <div class="permisos" id="permisos-multi" hidden>
+          <p class="ayuda">Los demás también pueden:</p>
+          <label class="check"><input type="checkbox" id="perm-sonido"> Oír los sonidos</label>
+          <label class="check"><input type="checkbox" id="perm-extras"> Ver girar la botella y la ruleta</label>
+          <label class="check"><input type="checkbox" id="perm-pasar"> Pasar de carta desde su celular</label>
+        </div>
+      </div>
       <p class="ayuda" id="ayuda-mias"></p>
       <div class="acciones">
         <button class="btn" id="btn-empezar">¡Empezar!</button>
@@ -96,7 +115,10 @@
       <header class="barra-juego">
         <button class="btn-icono" id="btn-salir" aria-label="Terminar partida">✕</button>
         <div class="progreso" id="progreso" hidden><i></i></div>
-        <button class="btn-icono" data-sonido aria-label="Silenciar sonidos">🔊</button>
+        <div class="barra-der">
+          <button class="btn-icono btn-sala" id="btn-sala" type="button" hidden aria-label="Compartir pantalla">📡<span class="sala-vistas" id="sala-vistas"></span></button>
+          <button class="btn-icono" data-sonido aria-label="Silenciar sonidos">🔊</button>
+        </div>
       </header>
       <div class="reglas-vivas" id="reglas-vivas" aria-label="Reglas activas" hidden></div>
       <div class="mesa" id="mesa" aria-live="polite"></div>
@@ -258,6 +280,31 @@
     <form method="dialog" class="fila-botones">
       <button class="btn btn-sec" value="no">Cancelar</button>
       <button type="button" class="btn" id="imp-ok">Revisar</button>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-sala" class="dialogo">
+    <h2>📡 Compartir pantalla</h2>
+    <p>Mándales el enlace, o que toquen «📺 Ver la partida de alguien» en el inicio y escriban este código:</p>
+    <div class="codigo-sala" id="codigo-sala">····</div>
+    <div class="fila-dos">
+      <button type="button" class="btn" id="btn-enviar-sala">📤 Enviar enlace</button>
+      <button type="button" class="btn btn-sec" id="btn-copiar-sala">📋 Copiar</button>
+    </div>
+    <p class="nota sala-nota" id="vistas-sala">Todavía no se conecta nadie.</p>
+    <form method="dialog" class="fila-botones">
+      <button class="btn btn-sec" value="apagar">Apagar</button>
+      <button class="btn" value="ok">Listo</button>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-unirse" class="dialogo">
+    <h2>📺 Ver la partida de alguien</h2>
+    <p>Escribe el código de 4 letras que sale en el celular del anfitrión.</p>
+    <input id="input-codigo" class="campo-codigo" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD" aria-label="Código de la sala">
+    <form method="dialog" class="fila-botones">
+      <button class="btn btn-sec" value="no">Cancelar</button>
+      <button type="button" class="btn" id="btn-entrar-sala">Entrar</button>
     </form>
   </dialog>
 

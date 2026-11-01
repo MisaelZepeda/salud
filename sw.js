@@ -1,12 +1,14 @@
 // Guarda la app en el celular para que funcione sin internet.
 // Cambia VERSION cada vez que publiques cambios para que se actualice.
-const VERSION = "salud-v12";
+const VERSION = "salud-v13";
 const ARCHIVOS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./cartas.js",
+  "./multi.js",
+  "./firebase-config.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

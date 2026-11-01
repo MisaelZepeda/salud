@@ -68,6 +68,18 @@
     codigoCompartir: "",
   };
 
+  // Multipantalla: «sala» si este celular es el anfitrión, «satelite» si está viendo la partida de otro.
+  const multi = {
+    sala: null,
+    satelite: null,
+    creando: false,
+    vistas: 0,
+    ultimaCarta: null,
+    textoSatelite: "",
+    vista: { listo: false, carta: 0, giro: null, permisos: {} },
+    permisos: { activo: false, sonido: true, extras: true, pasar: false, ...guardado.leer("salud.multi", {}) },
+  };
+
   // ---------- Utilidades ----------
 
   function barajar(lista) {
@@ -94,6 +106,9 @@
   let temporizadorAviso;
   function avisar(mensaje) {
     const el = $("#aviso");
+    // Con una ventana abierta, el aviso va dentro de ella; si no, quedaría tapado.
+    const contenedor = document.querySelector("dialog[open]") || document.body;
+    if (el.parentNode !== contenedor) contenedor.append(el);
     el.textContent = mensaje;
     el.classList.add("ver");
     clearTimeout(temporizadorAviso);
@@ -122,6 +137,7 @@
     let salida = null;
     let activo = guardado.leer("salud.sonido", true);
     let ignorarSilencio = guardado.leer("salud.ignorarSilencio", true);
+    let bloqueado = false; // un satélite sin permiso de sonido
 
     // En iPhone el modo silencio calla el audio web. Con la sesión "playback" (iOS 16.4+)
     // suena igual, pero pausa la música de otras apps en ese celular; por eso es opcional.
@@ -269,7 +285,9 @@
       get activo() { return activo; },
       get listo() { return !!ctx && ctx.state === "running"; },
       get ignorarSilencio() { return ignorarSilencio; },
+      set bloqueado(valor) { bloqueado = valor; },
       play(nombre, ...args) {
+        if (bloqueado) return;
         try { efectos[nombre]?.(...args); } catch {}
       },
       alternar() {
@@ -378,9 +396,12 @@
     window.scrollTo(0, 0);
     if (id === "juego") {
       pedirPantallaEncendida();
+      emitir({ pausa: false });
     } else {
       soltarPantalla();
       pararCrono();
+      if (multi.satelite) salirSatelite();
+      emitir({ pausa: true });
     }
   }
 
@@ -533,6 +554,7 @@
 
     const n = misCartasActivas().length;
     $("#ayuda-mias").textContent = n ? `⭐ Incluye ${n} ${n === 1 ? "carta tuya" : "cartas tuyas"}.` : "";
+    renderMulti();
   }
 
   $("#chk-progresivo").addEventListener("change", (e) => {
@@ -601,11 +623,14 @@
 
   let anguloBotella = 0;
 
-  function renderRuedo() {
+  let ruedoJugadores = [];
+
+  function renderRuedo(jugadores = estado.jugadores) {
+    ruedoJugadores = jugadores;
     const ruedo = $("#ruedo");
     ruedo.querySelectorAll(".asiento").forEach((e) => e.remove());
-    const n = estado.jugadores.length;
-    estado.jugadores.forEach((j, i) => {
+    const n = jugadores.length;
+    jugadores.forEach((j, i) => {
       const a = (i / n) * 2 * Math.PI;
       const s = document.createElement("span");
       s.className = "asiento";
@@ -617,11 +642,13 @@
     ruedo.classList.toggle("muchos", n > 8);
   }
 
-  function girarBotella() {
-    const n = estado.jugadores.length;
-    const i = Math.floor(Math.random() * n);
+  // «forzado» viene del anfitrión cuando un satélite repite su giro con el mismo resultado.
+  function girarBotella(forzado) {
+    const n = ruedoJugadores.length;
     const paso = 360 / n;
-    const destino = i * paso + (Math.random() - 0.5) * paso * 0.5;
+    const i = forzado ? forzado.i : Math.floor(Math.random() * n);
+    const destino = forzado ? forzado.destino : i * paso + (Math.random() - 0.5) * paso * 0.5;
+    if (!forzado) emitir({ giro: { id: Date.now(), tipo: "botella", jugadores: ruedoJugadores, i, destino } });
     $("#ruedo").querySelectorAll(".asiento").forEach((e) => e.classList.remove("elegido"));
     $("#res-botella").textContent = "Girando…";
     $("#girar-botella").disabled = true;
@@ -629,7 +656,7 @@
     anguloBotella = girar($("#botella"), anguloBotella, destino, $("#dlg-botella"), () => {
       const asiento = $("#ruedo").querySelectorAll(".asiento")[i];
       asiento.classList.add("elegido");
-      $("#res-botella").innerHTML = `¡Le tocó a <b class="nom-ruedo">${escapar(estado.jugadores[i])}</b>!`;
+      $("#res-botella").innerHTML = `¡Le tocó a <b class="nom-ruedo">${escapar(ruedoJugadores[i])}</b>!`;
       $("#girar-botella").disabled = false;
       sonido.play("brindis");
       vibrar(60);
@@ -642,7 +669,7 @@
     $("#dlg-botella").showModal();
     girarBotella();
   });
-  $("#girar-botella").addEventListener("click", girarBotella);
+  $("#girar-botella").addEventListener("click", () => girarBotella());
 
   function renderComodines() {
     const enCarta = estado.nombresCarta;
@@ -706,11 +733,15 @@
   let anguloRuleta = 0;
 
   // Los castigos dependen de los niveles elegidos; «Te salvas» siempre sale.
-  function armarRuleta() {
-    const fuerte = estado.modos.some((id) => ["fiesta", "sincontrol", "picante", "despedida"].includes(id));
-    const pool = [...CASTIGOS.base, ...(fuerte ? CASTIGOS.fuerte : []), ...(estado.modos.includes("picante") ? CASTIGOS.picante : [])];
-    const salva = pool.find((c) => c.salva);
-    segmentos = barajar([salva, ...barajar(pool.filter((c) => !c.salva)).slice(0, 7)]);
+  function armarRuleta(delAnfitrion) {
+    if (delAnfitrion) {
+      segmentos = delAnfitrion;
+    } else {
+      const fuerte = estado.modos.some((id) => ["fiesta", "sincontrol", "picante", "despedida"].includes(id));
+      const pool = [...CASTIGOS.base, ...(fuerte ? CASTIGOS.fuerte : []), ...(estado.modos.includes("picante") ? CASTIGOS.picante : [])];
+      const salva = pool.find((c) => c.salva);
+      segmentos = barajar([salva, ...barajar(pool.filter((c) => !c.salva)).slice(0, 7)]);
+    }
     const paso = 360 / segmentos.length;
     const rueda = $("#ruleta");
     rueda.style.background = `conic-gradient(${segmentos.map((_, i) => `${COLORES_RULETA[i % COLORES_RULETA.length]} ${i * paso}deg ${(i + 1) * paso}deg`).join(", ")})`;
@@ -723,11 +754,12 @@
     }));
   }
 
-  function girarRuleta() {
+  function girarRuleta(forzado) {
     const paso = 360 / segmentos.length;
-    const i = Math.floor(Math.random() * segmentos.length);
+    const i = forzado ? forzado.i : Math.floor(Math.random() * segmentos.length);
     // Para que el centro del segmento i quede bajo la flecha, la rueda gira 360° menos ese ángulo.
-    const destino = (360 - (i + 0.5) * paso + (Math.random() - 0.5) * paso * 0.6 + 360) % 360;
+    const destino = forzado ? forzado.destino : (360 - (i + 0.5) * paso + (Math.random() - 0.5) * paso * 0.6 + 360) % 360;
+    if (!forzado) emitir({ giro: { id: Date.now(), tipo: "ruleta", segmentos, i, destino } });
     $("#res-ruleta").textContent = "Girando…";
     $("#girar-ruleta").disabled = true;
     anguloRuleta = girar($("#ruleta"), anguloRuleta, destino, $("#dlg-ruleta"), () => {
@@ -745,7 +777,7 @@
     $("#dlg-ruleta").showModal();
     girarRuleta();
   });
-  $("#girar-ruleta").addEventListener("click", girarRuleta);
+  $("#girar-ruleta").addEventListener("click", () => girarRuleta());
 
   function armarMazo(modos) {
     const cartas = [];
@@ -803,6 +835,7 @@
     });
     sonido.play("brindis");
     lluvia(["🥂", "🍋", "🧂", "🌵", "✨"], { ...centroDe(el), n: 18 });
+    asegurarSala();
   }
 
   function subirNivel() {
@@ -1038,6 +1071,11 @@
     mesa.append(el);
     estado.ultimoCambio = Date.now();
 
+    if (!multi.satelite) {
+      multi.ultimaCarta = { id: Date.now(), tipo, modo, html, instr, pie: pie || "", tiempo, mia, extra, continuacion };
+      emitir({ carta: multi.ultimaCarta, progreso: { num: estado.numCarta, limite: estado.limite }, crono: null });
+    }
+
     const progreso = $("#progreso");
     progreso.hidden = !estado.limite;
     if (estado.limite) progreso.firstElementChild.style.transform = `scaleX(${Math.min(1, estado.numCarta / estado.limite)})`;
@@ -1064,11 +1102,16 @@
     $("#lista-reglas").innerHTML = estado.reglas
       .map((r) => `<li>${r.html}<small>Hasta nuevo aviso</small></li>`)
       .join("");
+    if (!multi.satelite) emitir({ reglas: estado.reglas.map((r) => r.html) });
   }
 
   // En una carta con tiempo, el primer toque arranca el temporizador y la carta
   // no cambia hasta que se acaba (o hasta que tocan «Saltar»).
   function tocarMesa(e) {
+    if (multi.satelite) {
+      pedirSiguiente();
+      return;
+    }
     if (estado.tipoActual === "final") {
       if (e?.target.closest(".final-otra")) empezarPartida();
       else if (e?.target.closest(".final-salir")) history.back();
@@ -1101,14 +1144,19 @@
   function actualizarPista() {
     const fase = estado.crono?.fase;
     $("#pista").textContent =
+      multi.satelite ? multi.textoSatelite :
       estado.tipoActual === "final" ? "¿Otra ronda?" :
       fase === "listo" ? "Toca la carta para iniciar el tiempo" :
       fase === "corriendo" ? "Esperen a que se acabe el tiempo…" :
       "Toca la carta para sacar la siguiente";
-    $("#btn-saltar").hidden = fase !== "listo" && fase !== "corriendo";
+    $("#btn-saltar").hidden = !!multi.satelite || (fase !== "listo" && fase !== "corriendo");
   }
 
   $("#btn-salir").addEventListener("click", () => {
+    if (multi.satelite) {
+      history.back();
+      return;
+    }
     const dlg = $("#dlg-salir");
     dlg.returnValue = "";
     dlg.addEventListener("close", () => {
@@ -1133,12 +1181,15 @@
     actualizarPista();
   }
 
-  function iniciarCrono() {
+  // En un satélite, «finSala» es la hora (del servidor) en que se acaba el tiempo del anfitrión.
+  function iniciarCrono(finSala) {
     const c = estado.crono;
+    if (!c || c.fase !== "listo") return;
     const num = c.el.querySelector(".crono-num");
     const barra = c.el.querySelector(".crono-barra i");
     c.fase = "corriendo";
-    c.fin = Date.now() + c.total * 1000;
+    c.fin = finSala ? Date.now() + (finSala - multi.satelite.ahora()) : Date.now() + c.total * 1000;
+    if (multi.sala) emitir({ crono: { fase: "corriendo", fin: multi.sala.ahora() + c.total * 1000 } });
     c.el.classList.add("cronometrando");
     c.el.querySelector(".crono-txt").textContent = "¡Corre el tiempo!";
     sonido.play("inicioCrono");
@@ -1165,7 +1216,9 @@
     clearInterval(intervalo);
     intervalo = null;
     const c = estado.crono;
+    if (!c || c.fase === "terminado") return;
     c.fase = "terminado";
+    emitir({ crono: { fase: "terminado" } });
     c.el.classList.remove("cronometrando", "ultimos");
     c.el.classList.add("tiempo-fuera");
     c.el.querySelector(".crono-txt").textContent = "¡Se acabó el tiempo!";
@@ -1413,6 +1466,353 @@
 
   $("#btn-importar").addEventListener("click", () => abrirImportar());
 
+  // ---------- Multipantalla ----------
+  // El anfitrión manda a la sala la carta, las reglas, el temporizador y los giros;
+  // los satélites solo los muestran y, si el anfitrión lo permite, piden la siguiente carta.
+
+  function emitir(parcial) {
+    if (multi.sala) multi.sala.actualizar(parcial);
+  }
+
+  function emitirTodo() {
+    emitir({
+      permisos: multi.permisos,
+      pausa: estado.pantalla !== "juego",
+      carta: multi.ultimaCarta,
+      reglas: estado.reglas.map((r) => r.html),
+      progreso: { num: estado.numCarta, limite: estado.limite },
+      crono: null,
+      giro: null,
+    });
+  }
+
+  function renderMulti() {
+    $("#op-multi").hidden = !Multi.disponible;
+    if (!Multi.disponible) return;
+    $("#chk-multi").checked = multi.permisos.activo;
+    $("#permisos-multi").hidden = !multi.permisos.activo;
+    $("#perm-sonido").checked = multi.permisos.sonido;
+    $("#perm-extras").checked = multi.permisos.extras;
+    $("#perm-pasar").checked = multi.permisos.pasar;
+  }
+
+  function guardarPermisos() {
+    guardado.escribir("salud.multi", multi.permisos);
+    emitir({ permisos: multi.permisos });
+  }
+
+  $("#chk-multi").addEventListener("change", (e) => {
+    multi.permisos.activo = e.target.checked;
+    if (!multi.permisos.activo) cerrarSala();
+    guardarPermisos();
+    renderMulti();
+  });
+  [["#perm-sonido", "sonido"], ["#perm-extras", "extras"], ["#perm-pasar", "pasar"]].forEach(([selector, clave]) => {
+    $(selector).addEventListener("change", (e) => {
+      multi.permisos[clave] = e.target.checked;
+      guardarPermisos();
+    });
+  });
+
+  // Se llama al empezar cada partida: crea la sala la primera vez y después solo la actualiza.
+  async function asegurarSala() {
+    if (!Multi.disponible || !multi.permisos.activo || multi.satelite) return;
+    if (multi.sala) {
+      emitirTodo();
+      return;
+    }
+    if (multi.creando) return;
+    multi.creando = true;
+    try {
+      multi.sala = await Multi.crear({ permisos: multi.permisos, pausa: false });
+      multi.sala.alPedir(() => {
+        if (multi.permisos.pasar && estado.pantalla === "juego" && !document.querySelector("dialog[open]")) tocarMesa();
+      });
+      multi.sala.alContarVistas((n) => {
+        multi.vistas = n;
+        renderSala();
+      });
+      emitirTodo();
+      renderSala();
+      $("#dlg-sala").returnValue = "";
+      $("#dlg-sala").showModal();
+    } catch {
+      avisar("No se pudo crear la sala. Revisa tu internet.");
+    } finally {
+      multi.creando = false;
+    }
+  }
+
+  function cerrarSala() {
+    if (!multi.sala) return;
+    multi.sala.cerrar();
+    multi.sala = null;
+    multi.vistas = 0;
+    renderSala();
+  }
+
+  function renderSala() {
+    $("#btn-sala").hidden = !multi.sala;
+    if (!multi.sala) return;
+    $("#codigo-sala").textContent = multi.sala.codigo;
+    $("#sala-vistas").textContent = multi.vistas || "";
+    $("#vistas-sala").textContent = multi.vistas
+      ? `👀 ${multi.vistas} ${multi.vistas === 1 ? "celular viendo" : "celulares viendo"}.`
+      : "Todavía no se conecta nadie.";
+  }
+
+  const enlaceSala = () => `${location.origin}${location.pathname}${location.search}#sala=${multi.sala.codigo}`;
+
+  $("#btn-sala").addEventListener("click", () => {
+    renderSala();
+    $("#dlg-sala").returnValue = "";
+    $("#dlg-sala").showModal();
+  });
+
+  $("#dlg-sala").addEventListener("close", () => {
+    if ($("#dlg-sala").returnValue !== "apagar") return;
+    cerrarSala();
+    multi.permisos.activo = false;
+    guardarPermisos();
+    avisar("📡 Multipantalla apagada");
+  });
+
+  $("#btn-enviar-sala").addEventListener("click", async () => {
+    const url = enlaceSala();
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "¡Salud!", text: `Únete a la peda en ¡Salud! 📺 Código: ${multi.sala.codigo}`, url });
+        return;
+      } catch (e) {
+        if (e.name === "AbortError") return;
+      }
+    }
+    copiarEnlaceSala(url);
+  });
+
+  $("#btn-copiar-sala").addEventListener("click", () => copiarEnlaceSala(enlaceSala()));
+
+  async function copiarEnlaceSala(url) {
+    const boton = $("#btn-copiar-sala");
+    try {
+      await navigator.clipboard.writeText(url);
+      boton.textContent = "✅ Copiado";
+      setTimeout(() => { boton.textContent = "📋 Copiar"; }, 1500);
+    } catch {
+      window.prompt("Copia este enlace:", url);
+    }
+  }
+
+  // --- Satélite ---
+
+  $("#btn-ver").addEventListener("click", () => {
+    $("#input-codigo").value = "";
+    $("#dlg-unirse").showModal();
+    $("#input-codigo").focus();
+  });
+
+  $("#input-codigo").addEventListener("input", (e) => {
+    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
+  });
+  $("#input-codigo").addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    unirseSala(e.target.value);
+  });
+  $("#btn-entrar-sala").addEventListener("click", () => unirseSala($("#input-codigo").value));
+
+  async function unirseSala(texto) {
+    const codigo = String(texto).toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
+    if (codigo.length !== 4) {
+      sonido.play("no");
+      avisar("El código es de 4 letras");
+      return;
+    }
+    cerrarSala(); // un celular no puede ser anfitrión y satélite a la vez
+    $("#btn-entrar-sala").disabled = true;
+    try {
+      let conexion = null;
+      let pendiente;
+      let hayPendiente = false;
+      conexion = await Multi.unirse(codigo, (datos) => {
+        if (multi.satelite && multi.satelite === conexion) {
+          alCambiarSala(datos);
+        } else {
+          pendiente = datos;
+          hayPendiente = true;
+        }
+      });
+      if (!conexion) {
+        sonido.play("no");
+        avisar("No existe esa sala. Revisa el código.");
+        return;
+      }
+      if ($("#dlg-unirse").open) $("#dlg-unirse").close();
+      entrarSatelite(conexion);
+      if (hayPendiente) alCambiarSala(pendiente);
+    } catch {
+      avisar("No se pudo conectar. Revisa tu internet.");
+    } finally {
+      $("#btn-entrar-sala").disabled = false;
+    }
+  }
+
+  function entrarSatelite(conexion) {
+    multi.satelite = conexion;
+    multi.vista = { listo: false, carta: 0, giro: null, permisos: {} };
+    multi.textoSatelite = `📺 Sala ${conexion.codigo} · conectando…`;
+    document.body.classList.add("modo-satelite");
+    estado.reglas = [];
+    estado.numCarta = 0;
+    estado.limite = 0;
+    $("#mesa").replaceChildren();
+    renderReglas();
+    mostrar("juego");
+    mostrarCarta({ tipo: "inicio", modo: "calentamiento", html: "Conectando con el anfitrión…", pie: "📺 " + conexion.codigo });
+  }
+
+  function salirSatelite() {
+    if (!multi.satelite) return;
+    multi.satelite.salir();
+    multi.satelite = null;
+    document.body.classList.remove("modo-satelite");
+    sonido.bloqueado = false;
+    pararCrono();
+    estado.reglas = [];
+    estado.numCarta = 0;
+    renderReglas();
+    $("#mesa").replaceChildren();
+    $("#progreso").hidden = true;
+    document.querySelectorAll("dialog[open]").forEach((d) => d.close());
+  }
+
+  let ultimoPedido = 0;
+  function pedirSiguiente() {
+    if (!multi.vista.permisos.pasar) {
+      sonido.play("no");
+      avisar("Solo el anfitrión pasa las cartas");
+      return;
+    }
+    if (Date.now() - ultimoPedido < 700) return;
+    ultimoPedido = Date.now();
+    multi.satelite.pedir();
+    vibrar(10);
+  }
+
+  // Lo que llega de otro celular solo puede traer las etiquetas y clases que usan las cartas.
+  const ETIQUETAS_OK = new Set(["B", "SPAN", "DIV", "SMALL", "BR", "I", "EM", "STRONG"]);
+  const CLASES_OK = new Set(["nom", "tachado", "origen", "final-stats"]);
+  const ETIQUETAS_FUERA = new Set(["BUTTON", "SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "SVG", "MATH", "IMG", "VIDEO", "AUDIO", "FORM", "INPUT", "TEXTAREA", "SELECT", "LINK", "META", "TEMPLATE"]);
+
+  function limpiarHtml(html) {
+    const plantilla = document.createElement("template");
+    plantilla.innerHTML = typeof html === "string" ? html.slice(0, 5000) : "";
+    const recorrer = (nodo) => {
+      for (const hijo of [...nodo.childNodes]) {
+        if (hijo.nodeType === Node.TEXT_NODE) continue;
+        if (hijo.nodeType !== Node.ELEMENT_NODE) { hijo.remove(); continue; }
+        if (ETIQUETAS_FUERA.has(hijo.tagName)) { hijo.remove(); continue; }
+        recorrer(hijo);
+        if (!ETIQUETAS_OK.has(hijo.tagName)) { hijo.replaceWith(...hijo.childNodes); continue; }
+        const clases = [...hijo.classList].filter((c) => CLASES_OK.has(c));
+        for (const atributo of [...hijo.attributes]) hijo.removeAttribute(atributo.name);
+        if (clases.length) hijo.className = clases.join(" ");
+      }
+    };
+    recorrer(plantilla.content);
+    return plantilla.innerHTML;
+  }
+
+  const comoLista = (valor) => (Array.isArray(valor) ? valor : Object.values(valor || {}));
+
+  function alCambiarSala(datos) {
+    if (!multi.satelite) return;
+    if (!datos) {
+      avisar("El anfitrión cerró la sala");
+      if (estado.pantalla === "juego") history.back();
+      return;
+    }
+    const v = multi.vista;
+    const permisos = datos.permisos || {};
+    v.permisos = permisos;
+    sonido.bloqueado = !permisos.sonido;
+    const codigo = multi.satelite.codigo;
+    multi.textoSatelite =
+      datos.conectado === false ? `📺 Sala ${codigo} · el anfitrión se desconectó, esperando…` :
+      datos.pausa ? `📺 Sala ${codigo} · el anfitrión está escogiendo el siguiente juego…` :
+      permisos.pasar ? `📺 Sala ${codigo} · toca la carta para pasar` :
+      `📺 Sala ${codigo} · el anfitrión pasa las cartas`;
+
+    estado.numCarta = Math.max(0, Number(datos.progreso?.num) || 0);
+    estado.limite = [30, 50, 80].includes(Number(datos.progreso?.limite)) ? Number(datos.progreso.limite) : 0;
+
+    const reglas = comoLista(datos.reglas).slice(0, 5).map(limpiarHtml);
+    if (reglas.join("|") !== estado.reglas.map((r) => r.html).join("|")) {
+      estado.reglas = reglas.map((html) => ({ html, nueva: !estado.reglas.some((r) => r.html === html) }));
+      renderReglas();
+    }
+
+    const c = datos.carta;
+    if (c && c.id !== v.carta) {
+      v.carta = c.id;
+      pararCrono();
+      ["#dlg-botella", "#dlg-ruleta"].forEach((d) => { if ($(d).open) $(d).close(); });
+      const tipo = TIPOS[c.tipo] ? c.tipo : "reto";
+      mostrarCarta({
+        tipo,
+        modo: MODO_POR_ID[c.modo] ? c.modo : "calentamiento",
+        html: limpiarHtml(c.html),
+        instr: limpiarHtml(c.instr),
+        pie: escapar(String(c.pie || "")),
+        tiempo: Math.min(600, Math.max(0, Math.round(Number(c.tiempo) || 0))),
+        mia: !!c.mia,
+        extra: limpiarHtml(c.extra),
+        continuacion: !!c.continuacion,
+      });
+      sonido.play("carta");
+      const acento = { regla: "regla", juego: "juego", grupo: "nivel", fin: "finRegla", nivel: "nivel", final: "brindis", inicio: "brindis" }[tipo];
+      if (acento) sonido.play(acento);
+      vibrar(12);
+    } else {
+      actualizarPista();
+    }
+
+    const crono = datos.crono;
+    if (crono?.fase === "corriendo" && estado.crono?.fase === "listo") iniciarCrono(Number(crono.fin) || multi.satelite.ahora());
+    if (crono?.fase === "terminado" && estado.crono && estado.crono.fase !== "terminado") terminarCrono();
+
+    // Un giro que ya había pasado antes de unirse no se repite.
+    const giro = datos.giro;
+    if (!v.listo) {
+      v.listo = true;
+      v.giro = giro?.id ?? null;
+    } else if (giro && giro.id !== v.giro) {
+      v.giro = giro.id;
+      if (permisos.extras) mostrarGiro(giro);
+    }
+  }
+
+  function mostrarGiro(giro) {
+    const i = Number(giro.i);
+    const destino = Number(giro.destino) || 0;
+    if (giro.tipo === "botella") {
+      const jugadores = comoLista(giro.jugadores).map(String).slice(0, 30);
+      if (!jugadores.length || !(i >= 0 && i < jugadores.length)) return;
+      if ($("#dlg-ruleta").open) $("#dlg-ruleta").close();
+      renderRuedo(jugadores);
+      if (!$("#dlg-botella").open) $("#dlg-botella").showModal();
+      girarBotella({ i, destino });
+    } else if (giro.tipo === "ruleta") {
+      const segs = comoLista(giro.segmentos).slice(0, 12)
+        .map((s) => ({ corto: String(s?.corto || ""), largo: String(s?.largo || ""), salva: !!s?.salva }));
+      if (!segs.length || !(i >= 0 && i < segs.length)) return;
+      if ($("#dlg-botella").open) $("#dlg-botella").close();
+      armarRuleta(segs);
+      if (!$("#dlg-ruleta").open) $("#dlg-ruleta").showModal();
+      girarRuleta({ i, destino });
+    }
+  }
+
   // ---------- Pantalla encendida durante la partida ----------
 
   let candado = null;
@@ -1459,16 +1859,23 @@
   // ---------- Arranque ----------
 
   renderSonido();
+  $("#btn-ver").hidden = !Multi.disponible;
   const codigoRecibido = location.hash.startsWith("#cartas=") ? location.hash.slice("#cartas=".length) : "";
+  const salaRecibida = location.hash.startsWith("#sala=") ? location.hash.slice("#sala=".length) : "";
   history.replaceState({ pantalla: "inicio" }, "", location.pathname + location.search);
   mostrar("inicio", { push: false });
   if (codigoRecibido) abrirImportar(codigoRecibido);
+  if (salaRecibida) {
+    if (Multi.disponible) unirseSala(salaRecibida);
+    else avisar("La multipantalla todavía no está activada en este juego");
+  }
 
   // Si el juego ya estaba abierto y pegan el link en la misma pestaña, no hay recarga.
   window.addEventListener("hashchange", () => {
-    if (!location.hash.startsWith("#cartas=")) return;
-    const codigo = location.hash.slice("#cartas=".length);
+    const [, tipo, codigo] = location.hash.match(/^#(cartas|sala)=(.+)$/) || [];
+    if (!tipo) return;
     history.replaceState({ pantalla: estado.pantalla }, "", location.pathname + location.search + (estado.pantalla === "inicio" ? "" : "#" + estado.pantalla));
-    abrirImportar(codigo);
+    if (tipo === "cartas") abrirImportar(codigo);
+    else if (Multi.disponible) unirseSala(codigo);
   });
 })();

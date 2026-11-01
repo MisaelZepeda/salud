@@ -1,0 +1,25 @@
+{
+  "rules": {
+    "salas": {
+      "$codigo": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() || data.child('host').val() === auth.uid)",
+        "host": {
+          ".validate": "newData.val() === auth.uid"
+        },
+        "vistas": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.isBoolean()"
+          }
+        },
+        "pedidos": {
+          "$pedido": {
+            ".write": "auth != null && !data.exists()",
+            ".validate": "newData.isNumber()"
+          }
+        }
+      }
+    }
+  }
+}

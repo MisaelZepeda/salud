@@ -7,6 +7,7 @@ Juego de cartas para tomar con amigos. App web instalable: gratis, sin anuncios 
 - **Modo progresivo**: recorre los niveles elegidos de más suave a más fuerte, subiendo cada 15 cartas.
 - **Botella**, **comodines** (2 por jugador) y **ruleta de castigos** desde la barra de abajo de la partida.
 - **Compartir mis cartas**: van dentro del link (`#cartas=...`, comprimidas) y se importan al abrirlo o pegándolo en «Importar».
+- **Multipantalla**: un celular es el anfitrión y los demás ven la partida con un código de 4 letras o un enlace (`#sala=ABCD`). Usa Firebase Realtime Database: pega tu configuración en `firebase-config.js` y las reglas de `firebase-reglas.json` en la consola de Firebase. Para probar sin Firebase, abre el juego con `?local-multi` en dos pestañas.
 - 5 tipos de cartas: Retos, Yo nunca, ¿Quién es más probable?, Reglas que duran varias cartas y Minijuegos (Caricachupas, ¡Bum!, mímica, duelos…), algunos con temporizador.
 - **Mis cartas**: escribe tus propias cartas desde la app; se guardan en el celular y se mezclan al jugar.
 - Animaciones y efectos de sonido (generados en el momento, sin archivos de audio). Se pueden silenciar con 🔊.
