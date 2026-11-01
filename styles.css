@@ -558,7 +558,9 @@ button { font: inherit; color: inherit; }
 .modo-satelite .herramientas,
 .modo-satelite #btn-sala,
 .modo-satelite #girar-botella,
-.modo-satelite #girar-ruleta { display: none !important; }
+.modo-satelite #girar-ruleta,
+.modo-satelite #dlg-botella form,
+.modo-satelite #dlg-ruleta form { display: none !important; }
 
 /* Herramientas de la partida */
 .herramientas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }

@@ -648,7 +648,7 @@
     const paso = 360 / n;
     const i = forzado ? forzado.i : Math.floor(Math.random() * n);
     const destino = forzado ? forzado.destino : i * paso + (Math.random() - 0.5) * paso * 0.5;
-    if (!forzado) emitir({ giro: { id: Date.now(), tipo: "botella", jugadores: ruedoJugadores, i, destino } });
+    if (!forzado) emitir({ giro: { id: Date.now(), tipo: "botella", jugadores: ruedoJugadores, i, destino }, giroAbierto: true });
     $("#ruedo").querySelectorAll(".asiento").forEach((e) => e.classList.remove("elegido"));
     $("#res-botella").textContent = "Girando…";
     $("#girar-botella").disabled = true;
@@ -661,6 +661,7 @@
       sonido.play("brindis");
       vibrar(60);
       lluvia(["🍾", "✨", "🥂"], { ...centroDe(asiento), n: 12 });
+      if (multi.satelite) cerrarGiroLuego();
     });
   }
 
@@ -759,7 +760,7 @@
     const i = forzado ? forzado.i : Math.floor(Math.random() * segmentos.length);
     // Para que el centro del segmento i quede bajo la flecha, la rueda gira 360° menos ese ángulo.
     const destino = forzado ? forzado.destino : (360 - (i + 0.5) * paso + (Math.random() - 0.5) * paso * 0.6 + 360) % 360;
-    if (!forzado) emitir({ giro: { id: Date.now(), tipo: "ruleta", segmentos, i, destino } });
+    if (!forzado) emitir({ giro: { id: Date.now(), tipo: "ruleta", segmentos, i, destino }, giroAbierto: true });
     $("#res-ruleta").textContent = "Girando…";
     $("#girar-ruleta").disabled = true;
     anguloRuleta = girar($("#ruleta"), anguloRuleta, destino, $("#dlg-ruleta"), () => {
@@ -769,6 +770,7 @@
       sonido.play(c.salva ? "comodin" : "fin");
       vibrar(c.salva ? 40 : [200, 80, 200]);
       lluvia(c.salva ? ["😇", "✨"] : ["🔥", "💥", "🥃"], { ...centroDe($("#ruleta")), n: 14 });
+      if (multi.satelite) cerrarGiroLuego();
     });
   }
 
@@ -1483,7 +1485,24 @@
       progreso: { num: estado.numCarta, limite: estado.limite },
       crono: null,
       giro: null,
+      giroAbierto: false,
     });
+  }
+
+  // Cuando el anfitrión cierra la botella o la ruleta, se cierra también en los satélites.
+  ["#dlg-botella", "#dlg-ruleta"].forEach((d) => {
+    $(d).addEventListener("close", () => { if (!multi.satelite) emitir({ giroAbierto: false }); });
+  });
+
+  // En un satélite nadie tiene que tocar «Listo»: la ventana se cierra sola poco después del resultado.
+  let cierreGiro;
+  function cerrarGiroLuego() {
+    clearTimeout(cierreGiro);
+    cierreGiro = setTimeout(cerrarGiros, 5000);
+  }
+  function cerrarGiros() {
+    clearTimeout(cierreGiro);
+    ["#dlg-botella", "#dlg-ruleta"].forEach((d) => { if ($(d).open) $(d).close(); });
   }
 
   function renderMulti() {
@@ -1782,6 +1801,7 @@
     if (crono?.fase === "terminado" && estado.crono && estado.crono.fase !== "terminado") terminarCrono();
 
     // Un giro que ya había pasado antes de unirse no se repite.
+    if (datos.giroAbierto === false) cerrarGiros();
     const giro = datos.giro;
     if (!v.listo) {
       v.listo = true;
@@ -1793,6 +1813,7 @@
   }
 
   function mostrarGiro(giro) {
+    clearTimeout(cierreGiro); // un giro nuevo no se cierra por el temporizador del anterior
     const i = Number(giro.i);
     const destino = Number(giro.destino) || 0;
     if (giro.tipo === "botella") {
