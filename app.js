@@ -136,15 +136,14 @@
     let ctx = null;
     let salida = null;
     let activo = guardado.leer("salud.sonido", true);
-    let ignorarSilencio = guardado.leer("salud.ignorarSilencio", true);
     let bloqueado = false; // un satélite sin permiso de sonido
 
     // En iPhone el modo silencio calla el audio web. Con la sesión "playback" (iOS 16.4+)
-    // suena igual, pero pausa la música de otras apps en ese celular; por eso es opcional.
+    // suena igual; para callarlo está el botón 🔊.
     function aplicarSesion() {
       if (!ES_IOS) return;
       try {
-        if (navigator.audioSession) navigator.audioSession.type = activo && ignorarSilencio ? "playback" : "auto";
+        if (navigator.audioSession) navigator.audioSession.type = activo ? "playback" : "auto";
       } catch {}
     }
     aplicarSesion();
@@ -284,7 +283,6 @@
     return {
       get activo() { return activo; },
       get listo() { return !!ctx && ctx.state === "running"; },
-      get ignorarSilencio() { return ignorarSilencio; },
       set bloqueado(valor) { bloqueado = valor; },
       play(nombre, ...args) {
         if (bloqueado) return;
@@ -296,22 +294,9 @@
         aplicarSesion();
         reiniciar();
       },
-      cambiarSilencio(valor) {
-        ignorarSilencio = valor;
-        guardado.escribir("salud.ignorarSilencio", valor);
-        aplicarSesion();
-        reiniciar();
-      },
       desbloquear,
     };
   })();
-
-  const chkSilencio = $("#chk-silencio");
-  chkSilencio.checked = sonido.ignorarSilencio;
-  chkSilencio.addEventListener("change", () => {
-    sonido.cambiarSilencio(chkSilencio.checked);
-    sonido.play("toque");
-  });
 
   function renderSonido() {
     document.querySelectorAll("[data-sonido]").forEach((b) => {

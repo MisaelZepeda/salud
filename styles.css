@@ -49,8 +49,9 @@ button { font: inherit; color: inherit; }
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  /* Arriba se deja aire extra: el iPhone difumina lo que queda justo debajo de la hora y la batería. */
   padding:
-    max(16px, env(safe-area-inset-top))
+    calc(env(safe-area-inset-top, 0px) + 24px)
     max(16px, env(safe-area-inset-right))
     max(16px, env(safe-area-inset-bottom))
     max(16px, env(safe-area-inset-left));
@@ -200,8 +201,6 @@ button { font: inherit; color: inherit; }
 }
 .interruptor input:checked { background: var(--lime); }
 .interruptor input:checked::after { transform: translateX(20px); }
-.interruptor.solo-ios { display: none; }
-.ios .interruptor.solo-ios { display: flex; }
 .interruptor.apagado { opacity: .5; cursor: not-allowed; }
 .interruptor.apagado input { cursor: not-allowed; }
 
