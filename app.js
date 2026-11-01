@@ -528,7 +528,8 @@
     $("#op-progresivo").classList.toggle("apagado", chk.disabled);
     $("#ayuda-progresivo").textContent = chk.disabled
       ? "Elige al menos 2 niveles de arriba para usarlo."
-      : `Empieza en ${nombreModo(nucleo[0])} y sube solo cada ${cartasPorNivel(nucleo.length)} cartas.`;
+      : `Empieza en ${nombreModo(nucleo[0])} y sube solo cada ${cartasPorNivel(nucleo.length)} cartas.` +
+        (estado.limite ? "" : " Después del último nivel, todo revuelto.");
 
     $("#chips-duracion").replaceChildren(...DURACIONES.map((d) => {
       const b = document.createElement("button");
@@ -801,12 +802,14 @@
     // En modo progresivo, cada etapa es un nivel normal más todos los temáticos elegidos.
     const nucleo = modosNucleo();
     const temas = modosTema();
-    estado.fases = estado.progresivo && nucleo.length >= 2
-      ? nucleo.map((id) => [id, ...temas])
-      : [ordenar(estado.modos)];
+    const progresivo = estado.progresivo && nucleo.length >= 2;
+    estado.fases = progresivo ? nucleo.map((id) => [id, ...temas]) : [ordenar(estado.modos)];
+    estado.porNivel = cartasPorNivel(estado.fases.length);
+    // Sin límite de cartas, al terminar el último nivel se revuelven todos los niveles elegidos.
+    estado.mezclaFinal = progresivo && !estado.limite;
+    if (estado.mezclaFinal) estado.fases.push(ordenar(estado.modos));
     estado.fase = 0;
     estado.cartasFase = 0;
-    estado.porNivel = cartasPorNivel(estado.fases.length);
     estado.stats = { reto: 0, grupo: 0, yonunca: 0, probable: 0, regla: 0, juego: 0, comodines: 0 };
     estado.pendientes = [];
     estado.reglaDesde = entre(ESPERA_REGLA);
@@ -827,6 +830,7 @@
     let instr = "Pongan el cel en medio y toquen la carta. Quien no cumpla, toma. Aquí vale verga todo.";
     if (estado.limite) instr += ` La partida dura ${estado.limite} cartas.`;
     if (estado.fases.length > 1) instr += ` Empiezan en ${nombreModo(estado.fases[0][0])} y suben cada ${estado.porNivel} cartas.`;
+    if (estado.mezclaFinal) instr += " Al final, todo revuelto.";
 
     const el = mostrarCarta({
       tipo: "inicio",
@@ -851,11 +855,27 @@
     sonido.play("carta");
     sonido.play("nivel");
     vibrar([40, 60, 40]);
+
+    if (ultimo && estado.mezclaFinal) {
+      const el = mostrarCarta({
+        tipo: "nivel",
+        modo: id,
+        html: "Ahora: 🎲 todo revuelto",
+        instr: "Ya pasaron por todos los niveles. De aquí en adelante salen cartas de todos, al azar.",
+        pie: "🎲 Todos los niveles",
+      });
+      lluvia(["🎲", ...estado.fases[estado.fase].map((m) => MODO_POR_ID[m].emoji)], { ...centroDe(el), n: 18 });
+      return;
+    }
+
+    const antesDeRevolver = estado.mezclaFinal && estado.fase === estado.fases.length - 2;
     const el = mostrarCarta({
       tipo: "nivel",
       modo: id,
       html: "Ahora: " + nombreModo(id),
-      instr: ultimo ? "Último nivel. De aquí ya no se baja, cabrones." : `Ahora sí se pone cabrón. En ${estado.porNivel} cartas vuelven a subir.`,
+      instr: ultimo ? "Último nivel. De aquí ya no se baja, cabrones."
+        : antesDeRevolver ? `Último nivel. En ${estado.porNivel} cartas se revuelve todo.`
+        : `Ahora sí se pone cabrón. En ${estado.porNivel} cartas vuelven a subir.`,
     });
     lluvia(["⬆️", "🔥", MODO_POR_ID[id].emoji], { ...centroDe(el), n: 16 });
   }
