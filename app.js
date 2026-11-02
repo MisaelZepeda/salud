@@ -2,6 +2,8 @@
 
 (() => {
   const $ = (s) => document.querySelector(s);
+  // Iconos del sprite que está al inicio de index.html.
+  const icono = (nombre) => `<svg class="ico" aria-hidden="true"><use href="#i-${nombre}"/></svg>`;
   const MAX_REGLAS = 3;
   // Para que las reglas no se amontonen: cartas de espera entre una regla y otra,
   // cuánto dura cada una, y cartas mínimas entre dos cierres.
@@ -139,7 +141,7 @@
     let bloqueado = false; // un satélite sin permiso de sonido
 
     // En iPhone el modo silencio calla el audio web. Con la sesión "playback" (iOS 16.4+)
-    // suena igual; para callarlo está el botón 🔊.
+    // suena igual; para callarlo está el botón de sonido.
     function aplicarSesion() {
       if (!ES_IOS) return;
       try {
@@ -300,7 +302,7 @@
 
   function renderSonido() {
     document.querySelectorAll("[data-sonido]").forEach((b) => {
-      b.textContent = sonido.activo ? "🔊" : "🔇";
+      b.innerHTML = icono(sonido.activo ? "volumen" : "silencio");
       b.setAttribute("aria-label", sonido.activo ? "Silenciar sonidos" : "Activar sonidos");
     });
   }
@@ -333,15 +335,16 @@
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   }
 
-  // Lanza emojis en todas direcciones desde un punto de la pantalla.
-  // Si hay una ventana abierta, van dentro de ella para que no queden tapados.
-  function lluvia(emojis, { x = innerWidth / 2, y = innerHeight / 2, n = 14 } = {}) {
+  // Lanza confeti en todas direcciones desde un punto de la pantalla.
+  // Si hay una ventana abierta, va dentro de ella para que no quede tapado.
+  const COLORES_CONFETI = ["--amber", "--lime", "--chile", "--agave", "--rosa", "--uva", "--oro", "--cielo"];
+  function confeti({ x = innerWidth / 2, y = innerHeight / 2, n = 14 } = {}) {
     if (SIN_MOVIMIENTO.matches) return;
     const contenedor = document.querySelector("dialog[open]") || document.body;
     for (let i = 0; i < n; i++) {
       const p = document.createElement("span");
-      p.className = "particula";
-      p.textContent = azar(emojis);
+      p.className = "particula" + (Math.random() < 0.3 ? " redonda" : "");
+      p.style.background = `var(${azar(COLORES_CONFETI)})`;
       p.style.left = x + "px";
       p.style.top = y + "px";
       contenedor.append(p);
@@ -429,7 +432,7 @@
       span.textContent = nombre;
       const quitar = document.createElement("button");
       quitar.type = "button";
-      quitar.textContent = "✕";
+      quitar.innerHTML = icono("x");
       quitar.setAttribute("aria-label", "Quitar a " + nombre);
       quitar.addEventListener("click", () => {
         estado.jugadores.splice(i, 1);
@@ -482,7 +485,7 @@
   const ordenar = (ids) => ORDEN_MODOS.filter((id) => ids.includes(id));
   const modosNucleo = () => ordenar(estado.modos.filter((id) => !MODO_POR_ID[id].tema));
   const modosTema = () => ordenar(estado.modos.filter((id) => MODO_POR_ID[id].tema));
-  const nombreModo = (id) => MODO_POR_ID[id].emoji + " " + MODO_POR_ID[id].nombre;
+  const nombreModo = (id) => MODO_POR_ID[id].nombre;
   // Con límite de cartas, los niveles se reparten en la partida; sin límite, se sube cada 15.
   const cartasPorNivel = (niveles) => estado.limite ? Math.max(5, Math.floor(estado.limite / niveles)) : CARTAS_POR_NIVEL;
 
@@ -493,9 +496,9 @@
     b.classList.toggle("recien", m.id === recien);
     b.setAttribute("aria-pressed", String(estado.modos.includes(m.id)));
     b.innerHTML = `
-      <span class="modo-emoji" aria-hidden="true">${m.emoji}</span>
+      <span class="modo-icono">${icono(m.icono)}</span>
       <span><span class="modo-nombre">${m.nombre}</span><span class="modo-desc">${m.desc}</span></span>
-      <span class="modo-check" aria-hidden="true">✓</span>`;
+      <span class="modo-check">${icono("palomita")}</span>`;
     b.addEventListener("click", () => alternarModo(m));
     return b;
   }
@@ -539,7 +542,7 @@
     }
 
     const n = misCartasActivas().length;
-    $("#ayuda-mias").textContent = n ? `⭐ Incluye ${n} ${n === 1 ? "carta tuya" : "cartas tuyas"}.` : "";
+    $("#ayuda-mias").textContent = n ? `Incluye ${n} ${n === 1 ? "carta tuya" : "cartas tuyas"}.` : "";
     renderMulti();
   }
 
@@ -559,7 +562,7 @@
     estado.modos.push(m.id);
     guardado.escribir("salud.modos", estado.modos);
     renderModos(m.id);
-    if (m.adulto) lluvia(["🌶️", "🔥", "💋"], { ...centroDe($(".modo-" + m.id)), n: 12 });
+    if (m.adulto) confeti({ ...centroDe($(".modo-" + m.id)), n: 12 });
   }
 
   function alternarModo(m) {
@@ -646,7 +649,7 @@
       $("#girar-botella").disabled = false;
       sonido.play("brindis");
       vibrar(60);
-      lluvia(["🍾", "✨", "🥂"], { ...centroDe(asiento), n: 12 });
+      confeti({ ...centroDe(asiento), n: 12 });
       if (multi.satelite) cerrarGiroLuego();
     });
   }
@@ -668,7 +671,7 @@
       b.className = "comodin";
       b.classList.toggle("en-carta", enCarta.includes(j));
       b.disabled = quedan === 0;
-      b.innerHTML = `<span class="comodin-nombre"></span><span class="comodin-cartas">${"🃏".repeat(quedan) || "Sin comodines"}</span>`;
+      b.innerHTML = `<span class="comodin-nombre"></span><span class="comodin-cartas">${icono("comodin").repeat(quedan) || "Sin comodines"}</span>`;
       b.querySelector(".comodin-nombre").textContent = j;
       b.setAttribute("aria-label", `${j}: le quedan ${quedan}`);
       b.addEventListener("click", () => usarComodin(j));
@@ -682,8 +685,8 @@
     $("#dlg-comodin").close();
     const quedan = estado.comodines[j];
     sonido.play("comodin");
-    avisar(`🃏 ${j} se salvó de esta. ${quedan ? `Le queda ${quedan}.` : "Ya se le acabaron, a sufrir."}`);
-    lluvia(["🃏", "😇"], { ...centroDe($("#carta")), n: 10 });
+    avisar(`${j} se salvó de esta. ${quedan ? `Le queda ${quedan}.` : "Ya se le acabaron, a sufrir."}`);
+    confeti({ ...centroDe($("#carta")), n: 10 });
     siguiente();
   }
 
@@ -699,20 +702,20 @@
 
   const CASTIGOS = {
     base: [
-      { corto: "3 tragos", largo: "🍹 Échate 3 tragos y sin chillar, cabrón." },
-      { corto: "Te salvas", largo: "😇 ¡Te salvaste! Qué pinche suerte tienes.", salva: true },
-      { corto: "Canta", largo: "🎤 Canta a todo pulmón el coro que escoja el grupo. Desafina a gusto." },
-      { corto: "Imita", largo: "🎭 Imita a alguien del grupo hasta que adivinen quién es." },
-      { corto: "Doble", largo: "✌️ Te toca el doble de lo que decía la carta. Ni modo, te chingaste." },
-      { corto: "El grupo", largo: "👥 El grupo decide tu castigo. Que se pongan cabrones." },
+      { corto: "3 tragos", largo: "Échate 3 tragos y sin chillar, cabrón." },
+      { corto: "Te salvas", largo: "¡Te salvaste! Qué pinche suerte tienes.", salva: true },
+      { corto: "Canta", largo: "Canta a todo pulmón el coro que escoja el grupo. Desafina a gusto." },
+      { corto: "Imita", largo: "Imita a alguien del grupo hasta que adivinen quién es." },
+      { corto: "Doble", largo: "Te toca el doble de lo que decía la carta. Ni modo, te chingaste." },
+      { corto: "El grupo", largo: "El grupo decide tu castigo. Que se pongan cabrones." },
     ],
     fuerte: [
-      { corto: "Shot", largo: "🥃 ¡Shot! Y con grito de «¡ajúa!»." },
-      { corto: "Fondo", largo: "🍺 ¡Fondo a tu vaso, sin respirar y sin hacer caras!" },
+      { corto: "Shot", largo: "¡Shot! Y con grito de «¡ajúa!»." },
+      { corto: "Fondo", largo: "¡Fondo a tu vaso, sin respirar y sin hacer caras!" },
     ],
     picante: [
-      { corto: "Prenda", largo: "👕 Quítate una prenda. Tú escoges cuál, no te hagas." },
-      { corto: "Beso", largo: "💋 Dale un beso a quien escoja el grupo (si acepta)." },
+      { corto: "Prenda", largo: "Quítate una prenda. Tú escoges cuál, no te hagas." },
+      { corto: "Beso", largo: "Dale un beso a quien escoja el grupo (si acepta)." },
     ],
   };
   const COLORES_RULETA = ["var(--amber)", "var(--rosa)", "var(--lime)", "var(--uva)", "var(--agave)", "var(--chile)", "var(--oro)", "var(--cielo)"];
@@ -755,7 +758,7 @@
       $("#girar-ruleta").disabled = false;
       sonido.play(c.salva ? "comodin" : "fin");
       vibrar(c.salva ? 40 : [200, 80, 200]);
-      lluvia(c.salva ? ["😇", "✨"] : ["🔥", "💥", "🥃"], { ...centroDe($("#ruleta")), n: 14 });
+      confeti({ ...centroDe($("#ruleta")), n: 14 });
       if (multi.satelite) cerrarGiroLuego();
     });
   }
@@ -825,7 +828,7 @@
       pie: ordenar(estado.modos).map(nombreModo).join(" · "),
     });
     sonido.play("brindis");
-    lluvia(["🥂", "🍋", "🧂", "🌵", "✨"], { ...centroDe(el), n: 18 });
+    confeti({ ...centroDe(el), n: 18 });
     asegurarSala();
   }
 
@@ -845,11 +848,11 @@
       const el = mostrarCarta({
         tipo: "nivel",
         modo: id,
-        html: "Ahora: 🎲 todo revuelto",
+        html: "Ahora: todo revuelto",
         instr: "Ya pasaron por todos los niveles. De aquí en adelante salen cartas de todos, al azar.",
-        pie: "🎲 Todos los niveles",
+        pie: "Todos los niveles",
       });
-      lluvia(["🎲", ...estado.fases[estado.fase].map((m) => MODO_POR_ID[m].emoji)], { ...centroDe(el), n: 18 });
+      confeti({ ...centroDe(el), n: 18 });
       return;
     }
 
@@ -862,7 +865,7 @@
         : antesDeRevolver ? `Último nivel. En ${estado.porNivel} cartas se revuelve todo.`
         : `Ahora sí se pone cabrón. En ${estado.porNivel} cartas vuelven a subir.`,
     });
-    lluvia(["⬆️", "🔥", MODO_POR_ID[id].emoji], { ...centroDe(el), n: 16 });
+    confeti({ ...centroDe(el), n: 16 });
   }
 
   function sacar() {
@@ -999,7 +1002,7 @@
     const el = mostrarCarta({ tipo: carta.tipo, modo: carta.modo, mia: carta.mia, html, instr, tiempo: carta.tiempo });
     if (/\b(shot|shots|fondo)\b/i.test(carta.texto)) {
       sonido.play("brindis");
-      lluvia(["🥃"], { ...centroDe(el), n: 7 });
+      confeti({ ...centroDe(el), n: 7 });
     }
   }
 
@@ -1013,7 +1016,7 @@
     const el = mostrarCarta({
       tipo: "final",
       modo: estado.fases[estado.fase][0],
-      html: "¡Se acabó la partida, cabrones! 🥂",
+      html: "¡Se acabó la partida, cabrones!",
       instr: "Tomen agua y que nadie maneje, no sean pendejos.",
       pie: `${estado.numCarta} cartas`,
       extra: `
@@ -1025,7 +1028,7 @@
           ${dato(s.comodines, "comodines")}
         </div>
         <div class="final-botones">
-          <button type="button" class="btn final-otra">🔁 Otra ronda</button>
+          <button type="button" class="btn final-otra">${icono("repetir")} Otra ronda</button>
           <button type="button" class="btn btn-sec final-salir">Terminar</button>
         </div>`,
     });
@@ -1033,7 +1036,7 @@
     sonido.play("nivel");
     sonido.play("brindis");
     vibrar([60, 80, 60]);
-    lluvia(["🥂", "🎉", "🍋", "✨"], { ...centroDe(el), n: 22 });
+    confeti({ ...centroDe(el), n: 22 });
   }
 
   // Cada carta es un elemento nuevo: la anterior sale volando y la nueva sube del mazo.
@@ -1058,8 +1061,8 @@
     el.id = "carta";
     el.className = "carta tipo-" + tipo;
     el.innerHTML = `
-      ${continuacion ? `<div class="carta-tipo"><span aria-hidden="true">↩️</span> La revancha</div>`
-        : tipo === "reto" ? "" : `<div class="carta-tipo"><span aria-hidden="true">${t.emoji}</span> ${t.nombre}</div>`}
+      ${continuacion ? `<div class="carta-tipo">${icono("revancha")} La revancha</div>`
+        : tipo === "reto" ? "" : `<div class="carta-tipo">${icono(t.icono)} ${t.nombre}</div>`}
       <div class="carta-cuerpo">
         <p class="carta-texto">${html}</p>
         <p class="carta-instr">${instr}</p>
@@ -1072,7 +1075,7 @@
         ${extra}
       </div>
       <div class="carta-pie">
-        <span>${pie || (mia ? "⭐ Carta tuya" : m.emoji + " " + m.nombre)}</span>
+        <span>${pie || (mia ? icono("estrella") + " Carta tuya" : icono(m.icono) + " " + m.nombre)}</span>
         <span>${tipo === "final" || !estado.numCarta ? "" : estado.limite ? `${estado.numCarta}/${estado.limite}` : "#" + estado.numCarta}</span>
       </div>`;
     mesa.append(el);
@@ -1231,7 +1234,7 @@
     c.el.querySelector(".crono-txt").textContent = "¡Se acabó el tiempo!";
     sonido.play("fin");
     vibrar([250, 120, 250]);
-    lluvia(["⏰", "💥", "🔔"], { ...centroDe(c.el.querySelector(".crono")), n: 12 });
+    confeti({ ...centroDe(c.el.querySelector(".crono")), n: 12 });
     actualizarPista();
   }
 
@@ -1249,7 +1252,7 @@
 
   $("#modo-carta").replaceChildren(
     new Option("Todos los niveles", "todos"),
-    ...MODOS.map((m) => new Option(m.emoji + " " + m.nombre, m.id)),
+    ...MODOS.map((m) => new Option(m.nombre, m.id)),
   );
 
   function renderEditor() {
@@ -1258,7 +1261,7 @@
       b.type = "button";
       b.className = "chip tipo-" + id;
       b.setAttribute("aria-pressed", String(id === tipoNuevo));
-      b.textContent = TIPOS[id].emoji + " " + NOMBRE_CORTO[id];
+      b.innerHTML = icono(TIPOS[id].icono) + " " + NOMBRE_CORTO[id];
       b.addEventListener("click", () => {
         tipoNuevo = id;
         renderEditor();
@@ -1308,14 +1311,14 @@
     li.className = "mia tipo-" + c.tipo;
     li.innerHTML = `
       <div>
-        <span class="mia-tipo">${TIPOS[c.tipo].emoji} ${NOMBRE_CORTO[c.tipo]}${c.tiempo ? " · ⏱ " + formatoTiempo(c.tiempo) : ""}</span>
+        <span class="mia-tipo">${icono(TIPOS[c.tipo].icono)} ${NOMBRE_CORTO[c.tipo]}${c.tiempo ? " · " + icono("reloj") + " " + formatoTiempo(c.tiempo) : ""}</span>
         <p>${vistaPrevia(c.texto)}</p>
         <small>${c.modo === "todos" ? "Todos los niveles" : nombreModo(c.modo)}</small>
       </div>`;
     if (alBorrar) {
       const quitar = document.createElement("button");
       quitar.type = "button";
-      quitar.textContent = "✕";
+      quitar.innerHTML = icono("x");
       quitar.setAttribute("aria-label", "Borrar carta");
       quitar.addEventListener("click", alBorrar);
       li.append(quitar);
@@ -1393,7 +1396,7 @@
     }
     const url = `${location.origin}${location.pathname}#cartas=${estado.codigoCompartir}`;
     const n = estado.mias.length;
-    const texto = `Te paso ${n === 1 ? "mi carta" : `mis ${n} cartas`} para ¡Salud! 🥂 Abre el link, o pégalo en «Mis cartas → Importar».`;
+    const texto = `Te paso ${n === 1 ? "mi carta" : `mis ${n} cartas`} para ¡Salud! Abre el link, o pégalo en «Mis cartas → Importar».`;
     if (navigator.share) {
       try {
         await navigator.share({ title: "¡Salud!", text: texto, url });
@@ -1457,7 +1460,7 @@
       estado.mias = [...porImportar.map((c, i) => ({ ...c, id: `${base}-${i}` })), ...estado.mias];
       guardado.escribir("salud.mias", estado.mias);
       sonido.play("comodin");
-      avisar(`⭐ Se agregaron ${porImportar.length} cartas`);
+      avisar(`Se agregaron ${porImportar.length} cartas`);
       if (estado.pantalla === "mias") renderMias(true);
     }
     $("#dlg-importar").close();
@@ -1581,7 +1584,7 @@
     $("#codigo-sala").textContent = multi.sala.codigo;
     $("#sala-vistas").textContent = multi.vistas || "";
     $("#vistas-sala").textContent = multi.vistas
-      ? `👀 ${multi.vistas} ${multi.vistas === 1 ? "celular viendo" : "celulares viendo"}.`
+      ? `${multi.vistas} ${multi.vistas === 1 ? "celular viendo" : "celulares viendo"}.`
       : "Todavía no se conecta nadie.";
   }
 
@@ -1598,14 +1601,14 @@
     cerrarSala();
     multi.permisos.activo = false;
     guardarPermisos();
-    avisar("📡 Multipantalla apagada");
+    avisar("Multipantalla apagada");
   });
 
   $("#btn-enviar-sala").addEventListener("click", async () => {
     const url = enlaceSala();
     if (navigator.share) {
       try {
-        await navigator.share({ title: "¡Salud!", text: `Únete a la peda en ¡Salud! 📺 Código: ${multi.sala.codigo}`, url });
+        await navigator.share({ title: "¡Salud!", text: `Únete a la peda en ¡Salud! Código: ${multi.sala.codigo}`, url });
         return;
       } catch (e) {
         if (e.name === "AbortError") return;
@@ -1620,8 +1623,8 @@
     const boton = $("#btn-copiar-sala");
     try {
       await navigator.clipboard.writeText(url);
-      boton.textContent = "✅ Copiado";
-      setTimeout(() => { boton.textContent = "📋 Copiar"; }, 1500);
+      boton.innerHTML = icono("palomita") + " Copiado";
+      setTimeout(() => { boton.innerHTML = icono("copiar") + " Copiar"; }, 1500);
     } catch {
       window.prompt("Copia este enlace:", url);
     }
@@ -1684,7 +1687,7 @@
   function entrarSatelite(conexion) {
     multi.satelite = conexion;
     multi.vista = { listo: false, carta: 0, giro: null, permisos: {} };
-    multi.textoSatelite = `📺 Sala ${conexion.codigo} · conectando…`;
+    multi.textoSatelite = `Sala ${conexion.codigo} · conectando…`;
     document.body.classList.add("modo-satelite");
     estado.reglas = [];
     estado.numCarta = 0;
@@ -1692,7 +1695,7 @@
     $("#mesa").replaceChildren();
     renderReglas();
     mostrar("juego");
-    mostrarCarta({ tipo: "inicio", modo: "calentamiento", html: "Conectando con el anfitrión…", pie: "📺 " + conexion.codigo });
+    mostrarCarta({ tipo: "inicio", modo: "calentamiento", html: "Conectando con el anfitrión…", pie: "Sala " + conexion.codigo });
   }
 
   function salirSatelite() {
@@ -1762,10 +1765,10 @@
     sonido.bloqueado = !permisos.sonido;
     const codigo = multi.satelite.codigo;
     multi.textoSatelite =
-      datos.conectado === false ? `📺 Sala ${codigo} · el anfitrión se desconectó, esperando…` :
-      datos.pausa ? `📺 Sala ${codigo} · el anfitrión está escogiendo el siguiente juego…` :
-      permisos.pasar ? `📺 Sala ${codigo} · toca la carta para pasar` :
-      `📺 Sala ${codigo} · el anfitrión pasa las cartas`;
+      datos.conectado === false ? `Sala ${codigo} · el anfitrión se desconectó, esperando…` :
+      datos.pausa ? `Sala ${codigo} · el anfitrión está escogiendo el siguiente juego…` :
+      permisos.pasar ? `Sala ${codigo} · toca la carta para pasar` :
+      `Sala ${codigo} · el anfitrión pasa las cartas`;
 
     estado.numCarta = Math.max(0, Number(datos.progreso?.num) || 0);
     estado.limite = [30, 50, 80].includes(Number(datos.progreso?.limite)) ? Number(datos.progreso.limite) : 0;

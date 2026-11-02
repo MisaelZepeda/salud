@@ -77,10 +77,26 @@ button { font: inherit; color: inherit; }
 .particula {
   position: fixed;
   z-index: 50;
-  font-size: 28px;
-  line-height: 1;
+  width: 9px;
+  height: 15px;
+  border-radius: 2px;
   pointer-events: none;
   will-change: transform, opacity;
+}
+.particula.redonda { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ---------- Iconos ---------- */
+
+.ico {
+  width: 1.2em;
+  height: 1.2em;
+  flex: none;
+  vertical-align: -0.22em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* ---------- Botones ---------- */
@@ -103,6 +119,8 @@ button { font: inherit; color: inherit; }
 .btn:disabled { opacity: .35; cursor: not-allowed; transform: none; }
 .btn-sec { background: var(--surface-2); color: var(--text); }
 .btn-mini { width: 56px; flex: none; font-size: 1.6rem; padding: 0; }
+.btn-mini .ico { width: 26px; height: 26px; vertical-align: middle; stroke-width: 2.5; }
+.btn .ico { width: 1.15em; height: 1.15em; }
 
 .btn-icono {
   appearance: none;
@@ -119,6 +137,7 @@ button { font: inherit; color: inherit; }
   cursor: pointer;
 }
 .btn-icono:active { transform: scale(.94); }
+.btn-icono .ico { width: 22px; height: 22px; color: var(--text); }
 
 :focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
 
@@ -265,7 +284,8 @@ button { font: inherit; color: inherit; }
   transition: border-color .15s ease, background-color .15s ease, transform .12s ease;
 }
 .modo:active { transform: scale(.98); }
-.modo-emoji { font-size: 2rem; text-align: center; }
+.modo-icono { display: grid; place-items: center; color: var(--c); }
+.modo-icono .ico { width: 30px; height: 30px; }
 .modo-nombre { display: block; font-weight: 900; font-size: 1.15rem; }
 .modo-desc { display: block; color: var(--muted); font-size: .9rem; }
 .modo-check {
@@ -281,8 +301,9 @@ button { font: inherit; color: inherit; }
 }
 .modo[aria-pressed="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--surface)); }
 .modo[aria-pressed="true"] .modo-check { background: var(--c); border-color: var(--c); color: var(--ink); }
+.modo-check .ico { width: 16px; height: 16px; stroke-width: 3; }
 .modo.recien .modo-check { animation: salta .45s cubic-bezier(.2, 1.6, .4, 1); }
-.modo.recien .modo-emoji { animation: meneo .5s ease-in-out; }
+.modo.recien .modo-icono { animation: meneo .5s ease-in-out; }
 
 .modo-calentamiento { --c: var(--lime); }
 .modo-fiesta { --c: var(--amber); }
@@ -341,7 +362,7 @@ button { font: inherit; color: inherit; }
   overflow: hidden;
 }
 .regla-viva::before {
-  content: "📜 REGLA";
+  content: "REGLA";
   position: absolute;
   top: 5px;
   left: 8px;
@@ -485,7 +506,7 @@ button { font: inherit; color: inherit; }
 .carta .btn { min-height: 50px; background: var(--ink); color: var(--c); }
 .carta .btn-sec { background: rgba(0, 0, 0, .14); color: var(--ink); }
 .tipo-nivel .carta-texto { font-size: clamp(1.9rem, 9vw, 2.6rem); }
-.tipo-nivel .carta-tipo span { display: inline-block; animation: brinda .7s .3s ease-in-out 2; }
+.tipo-nivel .carta-tipo .ico { display: inline-block; animation: brinda .7s .3s ease-in-out 2; }
 
 /* La regla que se acaba se tacha con una línea animada */
 .tipo-fin .tachado {
@@ -494,7 +515,7 @@ button { font: inherit; color: inherit; }
   box-decoration-break: clone;
   animation: tachar .5s .45s ease-out forwards;
 }
-.tipo-inicio .carta-tipo span { display: inline-block; animation: brinda .7s .3s ease-in-out 2; }
+.tipo-inicio .carta-tipo .ico { display: inline-block; animation: brinda .7s .3s ease-in-out 2; }
 
 .pie-juego { position: relative; display: flex; align-items: center; justify-content: center; min-height: 36px; }
 .pista { margin: 0; text-align: center; color: var(--muted); font-size: .9rem; }
@@ -578,7 +599,7 @@ button { font: inherit; color: inherit; }
   gap: 6px;
   cursor: pointer;
 }
-.herr span { font-size: 1.25rem; }
+.herr .ico { width: 20px; height: 20px; }
 .herr:active { transform: scale(.96); }
 
 /* Botella */
@@ -687,7 +708,8 @@ button { font: inherit; color: inherit; }
 .comodin.en-carta { border-color: var(--amber); }
 .comodin.en-carta .comodin-nombre::after { content: " · en la carta"; color: var(--amber); font-size: .8rem; }
 .comodin:disabled { opacity: .4; cursor: not-allowed; }
-.comodin-cartas { flex: none; letter-spacing: 2px; font-size: .9rem; }
+.comodin-cartas { flex: none; display: flex; gap: 3px; font-size: .9rem; color: var(--amber); }
+.comodin-cartas .ico { width: 20px; height: 20px; }
 
 /* Temporizador de minijuegos */
 .crono {
@@ -835,6 +857,7 @@ button { font: inherit; color: inherit; }
 .dialogo::backdrop { background: rgba(8, 5, 3, .7); backdrop-filter: blur(3px); }
 .dialogo[open] { animation: aparece .2s ease; }
 .dialogo h2 { margin: 0 0 12px; font-size: 1.4rem; font-weight: 900; }
+.dialogo h2 .ico, .subtitulo .ico { color: var(--amber); }
 .dialogo p { margin: 0 0 16px; color: var(--muted); }
 .dialogo form { margin-top: 18px; }
 .fila-botones { display: flex; gap: 10px; }
@@ -852,6 +875,8 @@ button { font: inherit; color: inherit; }
 .etq-regla { background: var(--oro); }
 .etq-grupo { background: var(--chile); }
 .etq-juego { background: var(--uva); }
+.etq-revancha { background: var(--gris); }
+.etq .ico { width: 1em; height: 1em; vertical-align: -0.14em; stroke-width: 2.4; }
 
 .lista-reglas { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .lista-reglas li { padding: 12px 14px; border-radius: 14px; background: var(--surface-2); font-weight: 700; }

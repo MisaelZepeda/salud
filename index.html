@@ -21,12 +21,56 @@
   <script src="app.js" defer></script>
 </head>
 <body>
+  <!-- Iconos del juego (trazo de 24 × 24). Se usan con <svg class="ico"><use href="#i-nombre"/></svg>. -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display: none">
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-atras" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+    <symbol id="i-mas" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-palomita" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+    <symbol id="i-volumen" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6a8 8 0 0 1 0 12"/></symbol>
+    <symbol id="i-silencio" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
+    <symbol id="i-lapiz" viewBox="0 0 24 24"><path d="M4 20l1.2-4.8L15.5 4.9a2.1 2.1 0 0 1 3 3L8.2 18.8z"/><path d="M13.5 7l3.5 3.5"/></symbol>
+    <symbol id="i-tv" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M9 21h6M12 17v4"/></symbol>
+    <symbol id="i-antena" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.8"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></symbol>
+    <symbol id="i-botella" viewBox="0 0 24 24"><path d="M10 2.5h4M10.5 2.5v4.2c0 .9-.6 1.5-1.3 2.2A3.5 3.5 0 0 0 8 11.5V20a1.5 1.5 0 0 0 1.5 1.5h5A1.5 1.5 0 0 0 16 20v-8.5a3.5 3.5 0 0 0-1.2-2.6c-.7-.7-1.3-1.3-1.3-2.2V2.5"/><path d="M8 14h8"/></symbol>
+    <symbol id="i-comodin" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M12 8.5l1.1 2.3 2.4.3-1.8 1.7.5 2.4-2.2-1.2-2.2 1.2.5-2.4-1.8-1.7 2.4-.3z"/></symbol>
+    <symbol id="i-ruleta" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 3v7M12 14v7M3 12h7M14 12h7M5.6 5.6l5 5M13.4 13.4l5 5M18.4 5.6l-5 5M10.6 13.4l-5 5"/></symbol>
+    <symbol id="i-compartir" viewBox="0 0 24 24"><path d="M12 15V3.5M7.5 8L12 3.5 16.5 8"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></symbol>
+    <symbol id="i-importar" viewBox="0 0 24 24"><path d="M12 3.5V15M7.5 10.5L12 15l4.5-4.5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></symbol>
+    <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></symbol>
+    <symbol id="i-pegar" viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="16.5" rx="2"/><rect x="9" y="2.5" width="6" height="4" rx="1"/></symbol>
+    <symbol id="i-regalo" viewBox="0 0 24 24"><rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8M12 8v13"/><path d="M12 8H8.8a2.3 2.3 0 1 1 0-4.6C11 3.4 12 8 12 8zM12 8h3.2a2.3 2.3 0 1 0 0-4.6C13 3.4 12 8 12 8z"/></symbol>
+    <symbol id="i-reloj" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></symbol>
+    <symbol id="i-subir" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
+    <symbol id="i-saltar" viewBox="0 0 24 24"><path d="M5 5.5l9 6.5-9 6.5z"/><path d="M18 5.5v13"/></symbol>
+    <symbol id="i-regla" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3.5"/></symbol>
+    <symbol id="i-dado" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="8.8" cy="8.8" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="15.2" cy="15.2" r="1.3" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-grupo" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.8 6-5.8s6 2.5 6 5.8"/><path d="M15.5 4.9a3.2 3.2 0 0 1 0 6.2M17.5 14.5c2 .6 3.5 2.6 3.5 5.5"/></symbol>
+    <symbol id="i-diana" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-burbuja" viewBox="0 0 24 24"><path d="M4 5.5h16v10.5H10l-5 4v-4H4z"/><path d="M8.5 10.5h7"/></symbol>
+    <symbol id="i-flecha" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.3l2.8 2.8 5.5-5.6"/></symbol>
+    <symbol id="i-nivel" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16.5v-9M8 11.5l4-4 4 4"/></symbol>
+    <symbol id="i-bandera" viewBox="0 0 24 24"><path d="M5.5 21V4M5.5 4.5h12l-2.5 4 2.5 4h-12"/></symbol>
+    <symbol id="i-copa" viewBox="0 0 24 24"><path d="M7.5 3h9l-.8 6.2a3.7 3.7 0 0 1-7.4 0z"/><path d="M12 13v7.5M8.5 20.5h7"/></symbol>
+    <symbol id="i-revancha" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4.5v4.5h4.5"/></symbol>
+    <symbol id="i-repetir" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.6M4 4v4.5h4.5"/><path d="M4 13a8 8 0 0 0 14.3 4.6M20 20v-4.5h-4.5"/></symbol>
+    <symbol id="i-estrella" viewBox="0 0 24 24"><path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.6l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></symbol>
+    <symbol id="i-cactus" viewBox="0 0 24 24"><path d="M10 21V6.5a2 2 0 0 1 4 0V21"/><path d="M10 14H8a2 2 0 0 1-2-2V9.5M14 11.5h2a2 2 0 0 0 2-2V7.5"/><path d="M6.5 21h11"/></symbol>
+    <symbol id="i-vaso" viewBox="0 0 24 24"><path d="M6 4h12l-1.8 16H7.8z"/><path d="M7 10h10"/></symbol>
+    <symbol id="i-flama" viewBox="0 0 24 24"><path d="M12 21.5c-3.9 0-6.5-2.8-6.5-6.4 0-2.8 1.6-4.6 3-6.2.3 1.6 1.1 2.7 2.2 3.2-.2-3.4 1.3-6.4 3.8-8.6.3 3.1 2 4.8 3.3 6.6 1 1.4 1.7 3 1.7 5 0 3.6-2.6 6.4-6.5 6.4z"/></symbol>
+    <symbol id="i-chile" viewBox="0 0 24 24"><path d="M17.5 7.5c1.1 1.6 1.2 4.4-.6 7.3-2.4 3.9-7.1 6.6-11.1 6.6-1.4 0-1.8-1.8-.4-2.5 3.3-1.6 6.9-4.6 8.4-9.3.6-1.8 2.5-3 3.7-2.1z"/><path d="M16 7c.2-1.9 1.2-3.3 3-3.8"/></symbol>
+    <symbol id="i-corazon" viewBox="0 0 24 24"><path d="M12 20s-8-4.8-8-10.4A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 8 2.6C20 15.2 12 20 12 20z"/></symbol>
+    <symbol id="i-anillo" viewBox="0 0 24 24"><circle cx="12" cy="15" r="6"/><path d="M9.5 3.5h5l1.5 2.3L12 9 8 5.8z"/></symbol>
+    <symbol id="i-pastel" viewBox="0 0 24 24"><path d="M4.5 21h15"/><rect x="5.5" y="12" width="13" height="9" rx="1.5"/><path d="M5.5 15.5c1.6 1.2 3.3 1.2 4.3 0 1.1 1.2 3.3 1.2 4.4 0 1 1.2 2.7 1.2 4.3 0M9 12V9M15 12V9M9 6.5v.01M15 6.5v.01"/></symbol>
+  </svg>
+
   <div class="burbujas" aria-hidden="true"></div>
   <main class="app">
 
     <section id="inicio" class="pantalla">
       <div class="barra-inicio">
-        <button class="btn-icono" data-sonido aria-label="Silenciar sonidos">🔊</button>
+        <button class="btn-icono" data-sonido aria-label="Silenciar sonidos"><svg class="ico" aria-hidden="true"><use href="#i-volumen"/></svg></button>
       </div>
       <div class="hero">
         <img src="icons/icon-192.png" alt="" width="120" height="120" class="hero-icono">
@@ -35,23 +79,23 @@
       </div>
       <div class="acciones">
         <button class="btn" id="btn-jugar">¡A jugar!</button>
-        <button class="btn btn-sec" id="btn-mias">✏️ Mis cartas</button>
-        <button class="btn btn-sec" id="btn-ver" hidden>📺 Ver la partida de alguien</button>
+        <button class="btn btn-sec" id="btn-mias"><svg class="ico" aria-hidden="true"><use href="#i-lapiz"/></svg> Mis cartas</button>
+        <button class="btn btn-sec" id="btn-ver" hidden><svg class="ico" aria-hidden="true"><use href="#i-tv"/></svg> Ver la partida de alguien</button>
         <button class="btn btn-sec" id="btn-como">Cómo se juega</button>
         <button class="btn btn-sec" id="btn-instalar" hidden>Instalar en mi celular</button>
         <p class="nota" id="nota-ios" hidden>Para instalarla en iPhone: toca <b>Compartir</b> y luego <b>Agregar a inicio</b>.</p>
       </div>
-      <p class="legal">Solo para mayores de edad. Toma con responsabilidad, toma agua y nadie maneja. · v17</p>
+      <p class="legal">Solo para mayores de edad. Toma con responsabilidad, toma agua y nadie maneja. · v18</p>
     </section>
 
     <section id="jugadores" class="pantalla" hidden>
       <header class="barra">
-        <button class="btn-icono" data-atras aria-label="Regresar">‹</button>
+        <button class="btn-icono" data-atras aria-label="Regresar"><svg class="ico" aria-hidden="true"><use href="#i-atras"/></svg></button>
         <h2>¿Quiénes juegan?</h2>
       </header>
       <form id="form-jugador" class="fila-agregar" autocomplete="off">
         <input id="input-jugador" type="text" maxlength="20" placeholder="Escribe un nombre" aria-label="Nombre del jugador" enterkeyhint="done" autocapitalize="words">
-        <button class="btn btn-mini" type="submit" aria-label="Agregar jugador">+</button>
+        <button class="btn btn-mini" type="submit" aria-label="Agregar jugador"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg></button>
       </form>
       <ul id="lista-jugadores" class="lista-jugadores"></ul>
       <p class="ayuda" id="ayuda-jugadores"></p>
@@ -62,7 +106,7 @@
 
     <section id="modos" class="pantalla" hidden>
       <header class="barra">
-        <button class="btn-icono" data-atras aria-label="Regresar">‹</button>
+        <button class="btn-icono" data-atras aria-label="Regresar"><svg class="ico" aria-hidden="true"><use href="#i-atras"/></svg></button>
         <h2>¿Qué tan fuerte?</h2>
       </header>
       <p class="ayuda">Elige uno o varios niveles. Si eliges varios, las cartas se mezclan.</p>
@@ -70,20 +114,20 @@
       <label class="interruptor" id="op-progresivo">
         <input type="checkbox" id="chk-progresivo" role="switch">
         <span>
-          <b>📈 Modo progresivo</b>
+          <b><svg class="ico" aria-hidden="true"><use href="#i-subir"/></svg> Modo progresivo</b>
           <small id="ayuda-progresivo"></small>
         </span>
       </label>
       <h3 class="subtitulo">Temáticos</h3>
       <p class="ayuda">Se mezclan con los niveles de arriba, o se juegan solos.</p>
       <div id="lista-temas" class="lista-modos"></div>
-      <label class="campo" id="campo-festejado" hidden>🎉 ¿A quién festejamos?
+      <label class="campo" id="campo-festejado" hidden><svg class="ico" aria-hidden="true"><use href="#i-regalo"/></svg> ¿A quién festejamos?
         <select id="festejado"></select>
       </label>
-      <h3 class="subtitulo">⏱️ Duración de la partida</h3>
+      <h3 class="subtitulo"><svg class="ico" aria-hidden="true"><use href="#i-reloj"/></svg> Duración de la partida</h3>
       <div class="chips" id="chips-duracion" role="group" aria-label="Duración de la partida"></div>
       <div class="multi-opciones" id="op-multi" hidden>
-        <h3 class="subtitulo">📡 Multipantalla</h3>
+        <h3 class="subtitulo"><svg class="ico" aria-hidden="true"><use href="#i-antena"/></svg> Multipantalla</h3>
         <label class="interruptor">
           <input type="checkbox" id="chk-multi" role="switch">
           <span>
@@ -106,29 +150,29 @@
 
     <section id="juego" class="pantalla" hidden>
       <header class="barra-juego">
-        <button class="btn-icono" id="btn-salir" aria-label="Terminar partida">✕</button>
+        <button class="btn-icono" id="btn-salir" aria-label="Terminar partida"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
         <div class="progreso" id="progreso" hidden><i></i></div>
         <div class="barra-der">
-          <button class="btn-icono btn-sala" id="btn-sala" type="button" hidden aria-label="Compartir pantalla">📡<span class="sala-vistas" id="sala-vistas"></span></button>
-          <button class="btn-icono" data-sonido aria-label="Silenciar sonidos">🔊</button>
+          <button class="btn-icono btn-sala" id="btn-sala" type="button" hidden aria-label="Compartir pantalla"><svg class="ico" aria-hidden="true"><use href="#i-antena"/></svg><span class="sala-vistas" id="sala-vistas"></span></button>
+          <button class="btn-icono" data-sonido aria-label="Silenciar sonidos"><svg class="ico" aria-hidden="true"><use href="#i-volumen"/></svg></button>
         </div>
       </header>
       <div class="reglas-vivas" id="reglas-vivas" aria-label="Reglas activas" hidden></div>
       <div class="mesa" id="mesa" aria-live="polite"></div>
       <div class="pie-juego">
         <p class="pista" id="pista">Toca la carta para sacar la siguiente</p>
-        <button class="pill pill-chica" id="btn-saltar" type="button" hidden>Saltar ⏭</button>
+        <button class="pill pill-chica" id="btn-saltar" type="button" hidden>Saltar <svg class="ico" aria-hidden="true"><use href="#i-saltar"/></svg></button>
       </div>
       <div class="herramientas">
-        <button class="herr" id="btn-botella" type="button"><span aria-hidden="true">🍾</span>Botella</button>
-        <button class="herr" id="btn-comodin" type="button"><span aria-hidden="true">🃏</span>Comodín</button>
-        <button class="herr" id="btn-ruleta" type="button"><span aria-hidden="true">🎡</span>Castigo</button>
+        <button class="herr" id="btn-botella" type="button"><svg class="ico" aria-hidden="true"><use href="#i-botella"/></svg>Botella</button>
+        <button class="herr" id="btn-comodin" type="button"><svg class="ico" aria-hidden="true"><use href="#i-comodin"/></svg>Comodín</button>
+        <button class="herr" id="btn-ruleta" type="button"><svg class="ico" aria-hidden="true"><use href="#i-ruleta"/></svg>Castigo</button>
       </div>
     </section>
 
     <section id="mias" class="pantalla" hidden>
       <header class="barra">
-        <button class="btn-icono" data-atras aria-label="Regresar">‹</button>
+        <button class="btn-icono" data-atras aria-label="Regresar"><svg class="ico" aria-hidden="true"><use href="#i-atras"/></svg></button>
         <h2>Mis cartas</h2>
       </header>
       <form id="form-carta" class="editor" autocomplete="off">
@@ -159,8 +203,8 @@
       <h3 class="subtitulo">Tus cartas <span id="num-mias" class="pill-num">0</span></h3>
       <ul id="lista-mias" class="lista-mias"></ul>
       <div class="fila-dos">
-        <button class="btn btn-sec" id="btn-compartir" type="button">📤 Compartir</button>
-        <button class="btn btn-sec" id="btn-importar" type="button">📥 Importar</button>
+        <button class="btn btn-sec" id="btn-compartir" type="button"><svg class="ico" aria-hidden="true"><use href="#i-compartir"/></svg> Compartir</button>
+        <button class="btn btn-sec" id="btn-importar" type="button"><svg class="ico" aria-hidden="true"><use href="#i-importar"/></svg> Importar</button>
       </div>
       <p class="nota">Tus cartas se guardan solo en este celular y se mezclan con las demás al jugar. Para pasarlas a otro celular, compártelas.</p>
     </section>
@@ -176,15 +220,15 @@
     </ol>
     <ul class="tipos">
       <li><b class="etq etq-reto">Naranja</b> Cartas normales. El castigo viene en la frase: cúmplelo o tómatelo.</li>
-      <li><b class="etq etq-grupo">📣 Para todos</b> Retos de grupo. Aquí nadie se salva.</li>
-      <li><b class="etq etq-regla">📜 Regla</b> Dura hasta nuevo aviso y se queda arriba como cartita amarilla. Cuando se acaba, sale su carta de cierre.</li>
-      <li><b class="etq etq-juego">🎲 Minijuego</b> Caricachupas, mímica, duelos… Algunos traen temporizador.</li>
-      <li><b>↩️ Y ahora…</b> Algunas cartas regresan unas cartas después con la revancha para los mismos jugadores.</li>
+      <li><b class="etq etq-grupo"><svg class="ico" aria-hidden="true"><use href="#i-grupo"/></svg> Para todos</b> Retos de grupo. Aquí nadie se salva.</li>
+      <li><b class="etq etq-regla"><svg class="ico" aria-hidden="true"><use href="#i-regla"/></svg> Regla</b> Dura hasta nuevo aviso y se queda arriba como cartita amarilla. Cuando se acaba, sale su carta de cierre.</li>
+      <li><b class="etq etq-juego"><svg class="ico" aria-hidden="true"><use href="#i-dado"/></svg> Minijuego</b> Caricachupas, mímica, duelos… Algunos traen temporizador.</li>
+      <li><b class="etq etq-revancha"><svg class="ico" aria-hidden="true"><use href="#i-revancha"/></svg> La revancha</b> Algunas cartas regresan unas cartas después con la revancha para los mismos jugadores.</li>
     </ul>
     <ul class="tipos">
-      <li><b>🍾 Botella:</b> gira una botella que elige a alguien al azar.</li>
-      <li><b>🃏 Comodín:</b> cada quien tiene 2 por partida para salvarse de una carta sin tomar.</li>
-      <li><b>🎡 Castigo:</b> si alguien no quiere cumplir, la ruleta decide qué le toca.</li>
+      <li><b><svg class="ico" aria-hidden="true"><use href="#i-botella"/></svg> Botella:</b> gira una botella que elige a alguien al azar.</li>
+      <li><b><svg class="ico" aria-hidden="true"><use href="#i-comodin"/></svg> Comodín:</b> cada quien tiene 2 por partida para salvarse de una carta sin tomar.</li>
+      <li><b><svg class="ico" aria-hidden="true"><use href="#i-ruleta"/></svg> Castigo:</b> si alguien no quiere cumplir, la ruleta decide qué le toca.</li>
     </ul>
     <ul class="glosario">
       <li><b>Trago:</b> un sorbo. <b>Shot:</b> un caballito de lo que estén tomando. <b>Fondo:</b> acabarse el vaso de una.</li>
@@ -196,7 +240,7 @@
   </dialog>
 
   <dialog id="dlg-picante" class="dialogo">
-    <h2>🌶️ Modo Picante +18</h2>
+    <h2><svg class="ico" aria-hidden="true"><use href="#i-chile"/></svg> Modo Picante +18</h2>
     <p>Trae retos subidos de tono. Es solo para mayores de edad y todo es con consentimiento: si alguien no quiere, no pasa nada, solo toma.</p>
     <form method="dialog" class="fila-botones">
       <button class="btn btn-sec" value="no">Cancelar</button>
@@ -205,7 +249,7 @@
   </dialog>
 
   <dialog id="dlg-reglas" class="dialogo">
-    <h2>📜 Reglas activas</h2>
+    <h2><svg class="ico" aria-hidden="true"><use href="#i-regla"/></svg> Reglas activas</h2>
     <ul id="lista-reglas" class="lista-reglas"></ul>
     <form method="dialog"><button class="btn">Cerrar</button></form>
   </dialog>
@@ -220,7 +264,7 @@
   </dialog>
 
   <dialog id="dlg-botella" class="dialogo">
-    <h2>🍾 La botella</h2>
+    <h2><svg class="ico" aria-hidden="true"><use href="#i-botella"/></svg> La botella</h2>
     <div class="ruedo" id="ruedo">
       <div class="botella" id="botella">
         <svg viewBox="0 0 40 140" aria-hidden="true">
@@ -240,14 +284,14 @@
   </dialog>
 
   <dialog id="dlg-comodin" class="dialogo">
-    <h2>🃏 ¿Quién usa su comodín?</h2>
+    <h2><svg class="ico" aria-hidden="true"><use href="#i-comodin"/></svg> ¿Quién usa su comodín?</h2>
     <p>Se salva de esta carta sin tomar. Cada quien tiene 2 por partida.</p>
     <div class="lista-comodines" id="lista-comodines"></div>
     <form method="dialog"><button class="btn btn-sec">Mejor no</button></form>
   </dialog>
 
   <dialog id="dlg-ruleta" class="dialogo">
-    <h2>🎡 Ruleta de castigos</h2>
+    <h2><svg class="ico" aria-hidden="true"><use href="#i-ruleta"/></svg> Ruleta de castigos</h2>
     <div class="ruleta-caja">
       <div class="ruleta-flecha" aria-hidden="true"></div>
       <div class="ruleta" id="ruleta"></div>
@@ -260,11 +304,11 @@
   </dialog>
 
   <dialog id="dlg-importar" class="dialogo">
-    <h2>📥 Importar cartas</h2>
+    <h2><svg class="ico" aria-hidden="true"><use href="#i-importar"/></svg> Importar cartas</h2>
     <div id="imp-entrada">
       <p>Pega aquí el link que te mandaron.</p>
       <textarea id="imp-texto" class="area" rows="3" aria-label="Link con cartas"></textarea>
-      <button type="button" class="btn btn-sec" id="imp-pegar">📋 Pegar</button>
+      <button type="button" class="btn btn-sec" id="imp-pegar"><svg class="ico" aria-hidden="true"><use href="#i-pegar"/></svg> Pegar</button>
     </div>
     <div id="imp-vista" hidden>
       <p id="imp-resumen"></p>
@@ -277,12 +321,12 @@
   </dialog>
 
   <dialog id="dlg-sala" class="dialogo">
-    <h2>📡 Compartir pantalla</h2>
-    <p>Mándales el enlace, o que toquen «📺 Ver la partida de alguien» en el inicio y escriban este código:</p>
+    <h2><svg class="ico" aria-hidden="true"><use href="#i-antena"/></svg> Compartir pantalla</h2>
+    <p>Mándales el enlace, o que toquen «Ver la partida de alguien» en el inicio y escriban este código:</p>
     <div class="codigo-sala" id="codigo-sala">····</div>
     <div class="fila-dos">
-      <button type="button" class="btn" id="btn-enviar-sala">📤 Enviar enlace</button>
-      <button type="button" class="btn btn-sec" id="btn-copiar-sala">📋 Copiar</button>
+      <button type="button" class="btn" id="btn-enviar-sala"><svg class="ico" aria-hidden="true"><use href="#i-compartir"/></svg> Enviar enlace</button>
+      <button type="button" class="btn btn-sec" id="btn-copiar-sala"><svg class="ico" aria-hidden="true"><use href="#i-copiar"/></svg> Copiar</button>
     </div>
     <p class="nota sala-nota" id="vistas-sala">Todavía no se conecta nadie.</p>
     <form method="dialog" class="fila-botones">
@@ -292,7 +336,7 @@
   </dialog>
 
   <dialog id="dlg-unirse" class="dialogo">
-    <h2>📺 Ver la partida de alguien</h2>
+    <h2><svg class="ico" aria-hidden="true"><use href="#i-tv"/></svg> Ver la partida de alguien</h2>
     <p>Escribe el código de 4 letras que sale en el celular del anfitrión.</p>
     <input id="input-codigo" class="campo-codigo" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD" aria-label="Código de la sala">
     <form method="dialog" class="fila-botones">

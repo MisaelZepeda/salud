@@ -11,31 +11,31 @@ const S = (texto, luego) => ({ texto, luego });
 const R = (texto, fin) => ({ texto, fin });
 
 const MODOS = [
-  { id: "calentamiento", nombre: "Calentamiento", emoji: "🌵", desc: "Para romper el hielo a la verga: burlón, pícaro y con poquita pena." },
-  { id: "fiesta", nombre: "Fiesta", emoji: "🥃", desc: "Ya salieron los shots. Más cachondo, más chisme y más castigo." },
-  { id: "sincontrol", nombre: "Sin control", emoji: "🔥", desc: "Para cuando ya vale verga todo. Fondos, confesiones y cero piedad." },
-  { id: "picante", nombre: "Picante +18", emoji: "🌶️", desc: "Sin filtro: besos, prendas y retos cachondos. Solo adultos y todo con consentimiento.", adulto: true },
+  { id: "calentamiento", nombre: "Calentamiento", icono: "cactus", desc: "Para romper el hielo a la verga: burlón, pícaro y con poquita pena." },
+  { id: "fiesta", nombre: "Fiesta", icono: "vaso", desc: "Ya salieron los shots. Más cachondo, más chisme y más castigo." },
+  { id: "sincontrol", nombre: "Sin control", icono: "flama", desc: "Para cuando ya vale verga todo. Fondos, confesiones y cero piedad." },
+  { id: "picante", nombre: "Picante +18", icono: "chile", desc: "Sin filtro: besos, prendas y retos cachondos. Solo adultos y todo con consentimiento.", adulto: true },
   // Temáticos: se mezclan con los niveles de arriba (en modo progresivo, en todas las etapas).
-  { id: "parejas", nombre: "Parejas", emoji: "💞", desc: "Para parejas que aguantan vara. Las cartas hablan de «tu pareja».", tema: true },
-  { id: "despedida", nombre: "Despedida", emoji: "💍", desc: "La última peda de soltería. Todo gira alrededor del festejado.", tema: true, festejado: true },
-  { id: "cumple", nombre: "Cumpleaños", emoji: "🎂", desc: "Para ponerle una peda épica al cumpleañero.", tema: true, festejado: true },
-  { id: "posada", nombre: "Posada", emoji: "🪅", desc: "Piñata, villancicos y ponche con harto piquete.", tema: true },
+  { id: "parejas", nombre: "Parejas", icono: "corazon", desc: "Para parejas que aguantan vara. Las cartas hablan de «tu pareja».", tema: true },
+  { id: "despedida", nombre: "Despedida", icono: "anillo", desc: "La última peda de soltería. Todo gira alrededor del festejado.", tema: true, festejado: true },
+  { id: "cumple", nombre: "Cumpleaños", icono: "pastel", desc: "Para ponerle una peda épica al cumpleañero.", tema: true, festejado: true },
+  { id: "posada", nombre: "Posada", icono: "estrella", desc: "Piñata, villancicos y ponche con harto piquete.", tema: true },
 ];
 
 // Tragos de las cartas «Yo nunca» y «Más probable» que escribe cada quien en «Mis cartas».
 const TRAGOS = { calentamiento: 2, fiesta: 3, sincontrol: 4, picante: 3, parejas: 2, despedida: 3, cumple: 3, posada: 3 };
 
 const TIPOS = {
-  inicio: { nombre: "¡Salud!", emoji: "🥂" },
-  reto: { nombre: "Reto", emoji: "🎯" },
-  grupo: { nombre: "Para todos", emoji: "📣" },
-  yonunca: { nombre: "Yo nunca", emoji: "🙊" },
-  probable: { nombre: "¿Quién es más probable?", emoji: "👉" },
-  regla: { nombre: "Regla nueva", emoji: "📜" },
-  juego: { nombre: "Minijuego", emoji: "🎲" },
-  fin: { nombre: "Fin de la regla", emoji: "✅" },
-  nivel: { nombre: "¡Subimos de nivel!", emoji: "⬆️" },
-  final: { nombre: "Fin de la partida", emoji: "🏁" },
+  inicio: { nombre: "¡Salud!", icono: "copa" },
+  reto: { nombre: "Reto", icono: "diana" },
+  grupo: { nombre: "Para todos", icono: "grupo" },
+  yonunca: { nombre: "Yo nunca", icono: "burbuja" },
+  probable: { nombre: "¿Quién es más probable?", icono: "flecha" },
+  regla: { nombre: "Regla nueva", icono: "regla" },
+  juego: { nombre: "Minijuego", icono: "dado" },
+  fin: { nombre: "Fin de la regla", icono: "check" },
+  nivel: { nombre: "¡Subimos de nivel!", icono: "nivel" },
+  final: { nombre: "Fin de la partida", icono: "bandera" },
 };
 
 const TEMAS = {
@@ -118,7 +118,7 @@ const CARTAS = {
       "{p}, di el segundo apellido de {p2}. Si no te lo sabes, 3 tragos por mal compa.",
       "El último que llegó a la peda se echa 3 tragos. Siempre tarde, cabrón.",
       "Si alguna vez te quedaste dormido en pleno faje, tómate 3. Qué oso.",
-      "{p}, enseña el último emoji que usaste. Si es 🍆 o 🍑, reparte 5, cochinón.",
+      "{p}, enseña el último emoji que usaste. Si es la berenjena o el durazno, reparte 5, cochinón.",
       "Si soñaste algo cochino con alguien famoso, reparte 3. Si fue con alguien de aquí, tómate 5 y no lo veas a los ojos.",
       S("{p}, escoge a la persona más guapa de aquí: esa persona reparte 3.", "{p}, la persona que escogiste como la más guapa ya se la creyó. Tómate 3 por barbero."),
       "Si alguna vez te cortaron por mensaje, reparte 3. Qué poca madre de esa persona.",
@@ -376,7 +376,7 @@ const CARTAS = {
       J("¡Bum! doble: múltiplos de 3 son «¡bum!» y múltiplos de 5 son «¡pum!». Empieza {p}. Quien la cague, shot."),
       J("Verdad o fondo: cada quien le hace una pregunta a {p}. Por cada una que no conteste, 2 tragos."),
       J("Flamingo: {p} y {p2} se paran en un pie con los ojos cerrados. Quien baje el pie primero, shot.", 30),
-      J("Ruleta de chupe: {p} toca 🍾 Botella abajo de la carta. A quien le toque, shot."),
+      J("Ruleta de chupe: {p} toca «Botella» abajo de la carta. A quien le toque, shot."),
       J("{p}, di 10 marcas de alcohol antes de que se acabe el tiempo o fondo.", 20),
       J("Silencio incómodo: todos ven a {p} a los ojos sin hablar. El primero en reírse, shot.", 20),
     ],
@@ -471,7 +471,7 @@ const CARTAS = {
       J(CARICACHUPAS("una prenda o 3 tragos")),
       J(CARICACHUPAS("3 tragos")),
       J(CARICACHUPAS("shot")),
-      J("La botella: {p} toca 🍾 Botella abajo de la carta. A quien le toque, {p} le da un beso con lengua (si acepta) o 3 tragos."),
+      J("La botella: {p} toca «Botella» abajo de la carta. A quien le toque, {p} le da un beso con lengua (si acepta) o 3 tragos."),
       J("Siete minutos en el paraíso: {p} y {p2} se van a otro cuarto (si los dos quieren). Si no, shot para cada uno.", 420),
       J("Mímica cachonda: {p} actúa una posición sin hablar. Si nadie adivina a tiempo, 3 tragos.", 45),
       J("Verdad o prenda: el grupo le hace a {p} la pregunta más cochina posible. Contesta o quítate una prenda."),
